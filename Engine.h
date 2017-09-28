@@ -13,7 +13,9 @@
 #include "MeshRenderer.h"
 #include "GameTerrain.h"
 #include "FlyCamera.h"
+#include "RotateObjectMouse.h"
 #include "Camera.h"
+#include "DirectionalLight.h"
 
 #include <chrono>
 
@@ -23,14 +25,12 @@ private:
 	GameObject* rootObject;
 	vector<GameObject*> gameObjects;
 	Camera* mainCamera;
+	DirectionalLight* mainLight;
+	Color ambientLight = Color(0.1f, 0.1f, 0.1f, 0.1f);
 	Uint64 lastTime;
 	Uint64 newTime;
 	Text console;
 	unsigned int oldFPSTimer = 0;
-	unsigned int oldNewGameTimer = 0;
-	unsigned int currentNewGameTimer = 0;
-	bool displayWinner = false;
-	int winnerID;
 
 public:
 	Engine() : App(800, 800) {}
@@ -88,10 +88,7 @@ public:
 		{
 			MeshRenderer* renderer = gameObjects[i]->GetComponent<MeshRenderer>();
 			if (renderer != nullptr)
-				draw(renderer->GetMesh(), gameObjects[i]->GetObjectToWorldMatrix(),
-					mainCamera->GetViewMatrix(), mainCamera->GetProjectionMatrix(), renderer->GetTexture());
-			/*if (renderer != nullptr)
-				renderer->Draw(mainCamera);*/
+				renderer->Draw(mainCamera, mainLight, ambientLight);
 		}
 		GUI();
 		return 1;
@@ -116,45 +113,28 @@ public:
 
 	void InitScene()
 	{
-		GameObject* guy = new GameObject();
-		guy->SetName("guy");
-		MeshRenderer* renderer2 = new MeshRenderer();
-		guy->AddComponent(renderer2);
-		renderer2->LoadMesh("data/cube.obj");
-		renderer2->LoadShader("data/shaders/basic_shader.glsl");
-		gameObjects.push_back(guy);
-		rootObject->AddChild(guy);
-		guy->SetPosition(10.0f, 0.0f, 0.0f);
-		guy->SetScale(1.0f, 1.0f, 1.0f);
-		renderer2->SetColor(Color(0, 0, 1, 1));
+		GameObject* guy4 = new GameObject();
+		guy4->SetName("guy4");
+		MeshRenderer* renderer5 = new MeshRenderer();
+		guy4->AddComponent(renderer5);
+		renderer5->LoadMesh("data/bigguy.obj");
+		renderer5->LoadShader("data/shaders/basic_shader.glsl");
+		renderer5->LoadTexture("data/debug2x2red.png");
+		gameObjects.push_back(guy4);
+		rootObject->AddChild(guy4);
+		guy4->SetPosition(0.0f, 0.0f, 0.0f);
+		renderer5->SetColor(Color(0.9, 0.1, 0.1, 1));
+		RotateObjectMouse* rotater = new RotateObjectMouse();
+		guy4->AddComponent(rotater);
 
-		// Set up terrain
-		/*GameObject* terrain = new GameObject();
-		terrain->SetName("terrain");
-		MeshRenderer* renderer1 = new MeshRenderer();
-		GameTerrain* gameTerrain = new GameTerrain("data/terrain/circuit2.png", 15.0f, 400.0f, 100.0f);
-		terrain->AddComponent(gameTerrain);
-		terrain->AddComponent(renderer1);
-		renderer1->LoadTexture("data/terrain/circuit2_color.png");
-		renderer1->LoadShader("data/shaders/basic_shader.glsl");
-		gameObjects.push_back(terrain);
-		rootObject->AddChild(terrain);
-		terrain->SetPosition(0.0f, 0.0f, 0.0f);
-		terrain->SetScale(1.0f, 1.0f, 1.0f);
-
-		GameObject* terrain2 = new GameObject();
-		terrain2->SetName("terrain");
-		MeshRenderer* renderer3 = new MeshRenderer();
-		GameTerrain* gameTerrain2 = new GameTerrain("data/terrain/circuit2.png", 15.0f, 400.0f, 100.0f);
-		terrain2->AddComponent(gameTerrain2);
-		terrain2->AddComponent(renderer3);
-		renderer3->LoadTexture("data/terrain/circuit2_color.png");
-		renderer3->LoadShader("data/shaders/basic_shader.glsl");
-		gameObjects.push_back(terrain2);
-		rootObject->AddChild(terrain2);
-		terrain2->SetPosition(0.0f, 10.0f, 0.0f);
-		terrain2->SetScale(1.0f, 1.0f, 1.0f);
-		renderer3->SetColor(Color(0, 1, 0, 1));*/
+		// Set up light
+		GameObject* lightObject = new GameObject();
+		lightObject->SetName("lightObject");
+		lightObject->SetPosition(0.0f, 0.0f, 0.0f);
+		lightObject->RotateAroundRadian(Vector(0, 1, 0), 180);
+		lightObject->RotateAroundRadian(Vector(1, 0, 0), 45);
+		mainLight = new DirectionalLight(1.0f, White());
+		lightObject->AddComponent(mainLight);
 
 		// Set up camera
 		GameObject* cameraObject = new GameObject();
@@ -163,11 +143,9 @@ public:
 		cameraObject->AddComponent(mainCamera);
 		gameObjects.push_back(cameraObject);
 		rootObject->AddChild(cameraObject);
-		cameraObject->SetRotation(TQuaternion<float, Vector>(Vector(0, 1, 0), 0.0f));// 1.5708f));
-		cameraObject->SetPosition(0.0f, 0.0f, 0.0f);
-		//cameraObject->LookAt(Vector(0.0f, 0.0f, 0.0f));
-		/*FlyCamera* cameraController = new FlyCamera();
-		cameraObject->AddComponent(cameraController);*/
+		cameraObject->SetPosition(0.0f, 0.0f, 35.0f);
+		//FlyCamera* flyCam = new FlyCamera();
+		//cameraObject->AddComponent(flyCam);
 	}
 
 	void GUI()

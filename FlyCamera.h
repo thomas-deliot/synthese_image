@@ -7,14 +7,15 @@
 class FlyCamera : public Component
 {
 private:
+	float speed = 0.5f;
 
 public:
 	/*------------- -------------*/
+	void Start()
+	{
+		gameObject->RotateAround(gameObject->GetForwardVector(), 180.0f);
+	}
 
-	/*!
-	*  \brief Fonction appelée à chaque frame de l'application. Fais suivre la rotation/position de la caméra en fonction du mouvement de
-	*	la souris et des deplacements au clavier.
-	*/
 	void Update(float dt)
 	{
 		// Keyboard X translation
@@ -31,18 +32,26 @@ public:
 		if (key_state(SDLK_s))
 			translationZ = 2.0f;
 
+		// Keyboard Z rotation
+		float rotationZ = 0.0f;
+		if (key_state(SDLK_a))
+			rotationZ = -2.0f;
+		if (key_state(SDLK_e))
+			rotationZ = 2.0f;
+
 		// Mouse aiming
 		int mx, my;
 		unsigned int mb = SDL_GetRelativeMouseState(&mx, &my);
 
 		// Update game object
 		Vector position = gameObject->GetPosition();
-		position = position + translationX * gameObject->GetRightVector()
-			+ translationZ * gameObject->GetForwardVector();
+		position = position + translationX * speed * gameObject->GetRightVector()
+			+ translationZ * speed * gameObject->GetForwardVector();
 		gameObject->SetPosition(position);
 
-		gameObject->RotateAround(Vector(0, 1, 0), mx);
-		gameObject->RotateAround(gameObject->GetRightVector(), my);
+		gameObject->RotateAround(Vector(0, 1, 0), mx * 0.5f);
+		gameObject->RotateAround(gameObject->GetRightVector(), my * 0.5f);
+		gameObject->RotateAround(gameObject->GetForwardVector(), rotationZ * 0.5f);
 	}
 	/*------------- -------------*/
 };

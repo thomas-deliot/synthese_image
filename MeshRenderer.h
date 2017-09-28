@@ -2,6 +2,7 @@
 
 #include "Component.h"
 #include "Camera.h"
+#include "DirectionalLight.h"
 
 #include "mat.h"
 #include "wavefront.h"
@@ -20,10 +21,10 @@ private:
 	Mesh mesh;
 	GLuint texture;
 	GLuint shaderProgram;
-	Color color = Color(1,0,0,1);
+	Color color = Color(1, 0, 0, 1);
 
 public:
-	MeshRenderer(){}
+	MeshRenderer() {}
 
 	/*!
 	*  \brief fonction appelée à la fermeture de l'application pour tous les composants.
@@ -34,13 +35,25 @@ public:
 	}
 
 	/*------------- -------------*/
-	void Draw(Camera* target)
+	void Draw(Camera* target, DirectionalLight* light, Color ambientLight)
 	{
 		// Setup shader program for draw
 		glUseProgram(shaderProgram);
 		Transform mvp = target->GetProjectionMatrix() * (target->GetViewMatrix() * gameObject->GetObjectToWorldMatrix());
+		Transform trs = gameObject->GetObjectToWorldMatrix();
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvpMatrix"), 1, GL_TRUE, mvp.buffer());
-		glUniform4fv(glGetUniformLocation(shaderProgram, "color"), 1, &color.r);
+		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "trsMatrix"), 1, GL_TRUE, trs.buffer());
+		glUniform4fv(glGetUniformLocation(shaderProgram, "diffuseColor"), 1, &color.r);
+		glUniform1f(glGetUniformLocation(shaderProgram, "shininess"), 128.0f);
+
+		Vector camPos = target->GetGameObject()->GetPosition();
+		Vector lightDir = light->GetGameObject()->GetForwardVector();
+		Color lightColor = light->GetColor();
+		glUniform3fv(glGetUniformLocation(shaderProgram, "camPos"), 1, &camPos.x);
+		glUniform4fv(glGetUniformLocation(shaderProgram, "ambientLight"), 1, &ambientLight.r);
+		glUniform3fv(glGetUniformLocation(shaderProgram, "lightDir"), 1, &lightDir.x);
+		glUniform4fv(glGetUniformLocation(shaderProgram, "lightColor"), 1, &lightColor.r);
+		glUniform1f(glGetUniformLocation(shaderProgram, "lightStrength"), light->GetStrength());
 
 		// Draw mesh
 		GLuint vao = mesh.GetVAO();
@@ -48,7 +61,11 @@ public:
 			mesh.create_buffers();
 		glBindVertexArray(mesh.GetVAO());
 		glUseProgram(shaderProgram);
-		glDrawElements(GL_TRIANGLES, (GLsizei)mesh.indices().size(), GL_UNSIGNED_INT, 0);
+
+		if (mesh.indices().size() > 0)
+			glDrawElements(GL_TRIANGLES, (GLsizei)mesh.indices().size(), GL_UNSIGNED_INT, 0);
+		else
+			glDrawArrays(GL_TRIANGLES, 0, (GLsizei)mesh.positions().size());
 	}
 
 	/*!
