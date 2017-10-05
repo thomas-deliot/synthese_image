@@ -169,8 +169,9 @@ public:
 		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "proj"), 1, GL_TRUE, projectionMatrix.buffer());
 		Transform invP = projectionMatrix.inverse();
 		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "invProj"), 1, GL_TRUE, invP.buffer());
-		glUniform1f(glGetUniformLocation(postfxProgram, "nearZ"), 0.1f);
-		glUniform1f(glGetUniformLocation(postfxProgram, "zThickness"), 0.0f);
+		glUniform1f(glGetUniformLocation(postfxProgram, "nearZ"), nearZ);
+		glUniform1f(glGetUniformLocation(postfxProgram, "farZ"), farZ);
+		glUniform1f(glGetUniformLocation(postfxProgram, "zThickness"), 50.0f);
 
 		vector<Vector> frustumNearCorners = GetFrustumNearCorners();
 		for (int i = 0; i < frustumNearCorners.size(); i++)

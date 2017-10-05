@@ -31,13 +31,14 @@ uniform sampler2D csZBuffer;
 uniform vec2 csZBufferSize;
 uniform mat4 invProj;
 uniform mat4 proj;
-uniform float nearPlaneZ;
+uniform float nearZ;
+uniform float farZ;
 uniform float zThickness;
 
 const float maxSteps = 256;
-const float maxDistance = 200.0;
+const float maxDistance = 100.0;
 const float jitter = 0.0;
-const float stride = 1.0;
+const float stride = 8.0;
 
 in vec2 vtexcoord;
 in vec3 vViewPos;
@@ -54,8 +55,8 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
 	out vec2 hitPixel, out vec3 hitPoint) 
 {
     // Clip to the near plane    
-    float rayLength = ((csOrig.z + csDir.z * maxDistance) > nearPlaneZ) ?
-        (nearPlaneZ - csOrig.z) / csDir.z : maxDistance;
+    float rayLength = ((csOrig.z + csDir.z * maxDistance) > nearZ) ?
+        (nearZ - csOrig.z) / csDir.z : maxDistance;
     vec3 csEndPoint = csOrig + csDir * rayLength;
  
     // Project into homogeneous clip space
@@ -82,7 +83,10 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
     if (abs(delta.x) < abs(delta.y)) 
 	{ 
         // This is a more-vertical line
-        permute = true; delta = delta.yx; P0 = P0.yx; P1 = P1.yx; 
+        permute = true;
+		delta = delta.yx;
+		P0 = P0.yx;
+		P1 = P1.yx; 
     }
  
     float stepDir = sign(delta.x);
@@ -124,9 +128,7 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
         hitPixel = permute ? P.yx : P;
         // You may need hitPixel.y = csZBufferSize.y - hitPixel.y; here if your vertical axis
         // is different than ours in screen space
-		float f = 100.0;
-		float n = 0.1;
-		float tempZ = (2 * n) / (f + n - texture(csZBuffer, hitPixel / csZBufferSize).x * (f - n));
+		float tempZ = (2 * nearZ) / (farZ + nearZ - texture(csZBuffer, hitPixel / csZBufferSize).x * (farZ - nearZ));
 		sceneZMax = -(tempZ * (100.0 - 0.1) + 0.1);
     }
      
@@ -138,24 +140,17 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
 
 void main()
 {
-	float f = 100.0;
-	float n = 0.1;
-	float z = (2 * n) / (f + n - texture(csZBuffer, vtexcoord).x * (f - n));
+	float z = (2 * nearZ) / (farZ + nearZ - texture(csZBuffer, vtexcoord).x * (farZ - nearZ));
 	vec3 csOrig = vViewPos + normalize(vViewPos) * (z * (100.0 - 0.1) + 0.1);
 	csOrig.z = -csOrig.z;
 	
-	vec3 csDir = vec3(1, 0, 0);
+	vec3 csDir = vec3(0, 1, 0);
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
 	bool lol = traceScreenSpaceRay1(csOrig, csDir, hitPixel, hitPoint);
-	if(lol)
-		pixelColor = vec4(1, 0, 0, 1);
-	else
-		pixelColor = vec4(0, 0, 1, 1);
-		
-	//pixelColor = vec4(csOrig.z, 0, 0, 1);
 	
-	//pixelColor = texture(colorBuffer, vtexcoord.xy) * vec4(z, 1, 1, 1);
+	pixelColor = texture(colorBuffer, vtexcoord.xy) * vec4(z, 1, 1, 1);
+	pixelColor.x = lol ? 1.0 : 0.0;
 	//pixelColor = pixelColor * texture(csZBuffer, vtexcoord.xy);
 }
 #endif
