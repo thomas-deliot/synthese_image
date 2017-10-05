@@ -24,7 +24,7 @@ private:
 public:
 	void Start()
 	{
-		postfxProgram = read_program("m2tp/Shaders/post_effect.glsl");
+		postfxProgram = read_program("m2tp/Shaders/ssr_fx.glsl");
 	}
 
 	void OnDestroy()
@@ -126,9 +126,9 @@ public:
 	{
 		glDisable(GL_DEPTH_TEST);
 
-		/*BeginPostEffect();
+		BeginPostEffect();
 		DrawScreenSpaceReflections();
-		EndPostEffect();*/
+		EndPostEffect();
 
 		// Reset before ending
 		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer, 0);
