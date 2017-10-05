@@ -35,7 +35,7 @@ uniform float nearPlaneZ;
 uniform float zThickness;
 
 const float maxSteps = 256;
-const float maxDistance = 2.0;
+const float maxDistance = 200.0;
 const float jitter = 0.0;
 const float stride = 1.0;
 
@@ -124,10 +124,10 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
         hitPixel = permute ? P.yx : P;
         // You may need hitPixel.y = csZBufferSize.y - hitPixel.y; here if your vertical axis
         // is different than ours in screen space
-		float depthSample = texture(csZBuffer, hitPixel / csZBufferSize).x;
-        vec4 temp = invProj * vec4(0, 0, depthSample, 1.0);
-		temp /= temp.w;
-		sceneZMax = temp.z;
+		float f = 100.0;
+		float n = 0.1;
+		float tempZ = (2 * n) / (f + n - texture(csZBuffer, hitPixel / csZBufferSize).x * (f - n));
+		sceneZMax = -(tempZ * (100.0 - 0.1) + 0.1);
     }
      
     // Advance Q based on the number of steps
@@ -138,18 +138,24 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
 
 void main()
 {
-	vec3 vViewDir = normalize(vViewPos);
+	float f = 100.0;
+	float n = 0.1;
+	float z = (2 * n) / (f + n - texture(csZBuffer, vtexcoord).x * (f - n));
+	vec3 csOrig = vViewPos + normalize(vViewPos) * (z * (100.0 - 0.1) + 0.1);
+	csOrig.z = -csOrig.z;
+	
+	vec3 csDir = vec3(1, 0, 0);
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
-	bool lol = traceScreenSpaceRay1(vViewPos, vViewDir, hitPixel, hitPoint);
+	bool lol = traceScreenSpaceRay1(csOrig, csDir, hitPixel, hitPoint);
 	if(lol)
 		pixelColor = vec4(1, 0, 0, 1);
 	else
 		pixelColor = vec4(0, 0, 1, 1);
 		
-	//pixelColor = vec4(vViewDir, 1);
+	//pixelColor = vec4(csOrig.z, 0, 0, 1);
 	
-	//pixelColor = texture(colorBuffer, vtexcoord.xy);
+	//pixelColor = texture(colorBuffer, vtexcoord.xy) * vec4(z, 1, 1, 1);
 	//pixelColor = pixelColor * texture(csZBuffer, vtexcoord.xy);
 }
 #endif

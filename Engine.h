@@ -144,6 +144,20 @@ public:
 
 	void InitScene()
 	{
+		GameObject* guy = new GameObject();
+		guy->SetName("guy");
+		MeshRenderer* renderer = new MeshRenderer();
+		guy->AddComponent(renderer);
+		renderer->LoadMesh("data/bigguy.obj");
+		renderer->LoadShader("m2tp/Shaders/basic_shader.glsl");
+		renderer->LoadTexture("data/debug2x2red.png");
+		gameObjects.push_back(guy);
+		rootObject->AddChild(guy);
+		guy->SetPosition(-10.0f, 0.0f, 0.0f);
+		renderer->SetColor(Color(1.0, 1.0, 1.0, 1.0));
+		RotateObjectMouse* rotater = new RotateObjectMouse();
+		guy->AddComponent(rotater);
+
 		GameObject* guy4 = new GameObject();
 		guy4->SetName("guy4");
 		MeshRenderer* renderer5 = new MeshRenderer();
@@ -153,10 +167,8 @@ public:
 		renderer5->LoadTexture("data/debug2x2red.png");
 		gameObjects.push_back(guy4);
 		rootObject->AddChild(guy4);
-		guy4->SetPosition(0.0f, 0.0f, 0.0f);
+		guy4->SetPosition(10.0f, 0.0f, 0.0f);
 		renderer5->SetColor(Color(1.0, 1.0, 1.0, 1.0));
-		RotateObjectMouse* rotater = new RotateObjectMouse();
-		guy4->AddComponent(rotater);
 
 		// Set up light
 		GameObject* lightObject = new GameObject();
@@ -178,7 +190,7 @@ public:
 		rootObject->AddChild(cameraObject);
 		cameraObject->SetPosition(0.0f, 0.0f, 35.0f);
 		mainCamera->SetupFrameBuffer(frameWidth, frameHeight);
-		//FlyCamera* flyCam = new FlyCamera();
+		FlyCamera* flyCam = new FlyCamera();
 		//cameraObject->AddComponent(flyCam);
 
 		// Set up skybox

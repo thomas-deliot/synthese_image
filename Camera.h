@@ -15,7 +15,7 @@ private:
 	int frameWidth = 800;
 	int frameHeight = 800;
 	float nearZ = 0.1f;
-	float farZ = 1000.0f;
+	float farZ = 100.0f;
 	float fov = 60.0f;
 	GLuint frameBuffer;
 	GLuint colorBuffer;
