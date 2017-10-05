@@ -2,16 +2,14 @@
 #version 330
 
 #ifdef VERTEX_SHADER
-uniform mat4 mvpMatrix;
-
-attribute  vec2 position;
+const vec2 quadVertices[4] = vec2[4]( vec2( -1.0, -1.0), vec2( 1.0, -1.0), vec2( -1.0, 1.0), vec2( 1.0, 1.0));
 
 out vec2 vtexcoord;
 
 void main( )
 {
-	gl_Position = vec4(position, 0, 1);
-	vtexcoord = (position + 1.0) / 2.0;
+	gl_Position = vec4(quadVertices[gl_VertexID], 0.0, 1.0);
+	vtexcoord = (quadVertices[gl_VertexID] + 1.0) / 2.0;
 }
 #endif
 
@@ -27,6 +25,6 @@ out vec4 pixelColor;
 
 void main()
 {
-	pixelColor = texture(colorBuffer, vtexcoord.xy) * 0.5f;
+	pixelColor = 1 - texture(colorBuffer, vtexcoord.xy);
 }
 #endif

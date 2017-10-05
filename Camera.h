@@ -16,35 +16,15 @@ private:
 	GLuint depthBuffer;
 	GLuint colorSampler;
 
-
 	// Post effect
 	GLuint postfxProgram;
-	GLuint postfx_vertices;
-	GLuint postfx_vertices_attribute;
 	GLuint frameBuffer2;
 	GLuint colorBuffer2;
-	GLuint depthBuffer2;
-	GLuint colorSampler2;
 
 public:
-	void OnStart()
+	void Start()
 	{
 		postfxProgram = read_program("m2tp/Shaders/post_effect.glsl");
-
-		GLfloat fbo_vertices[] =
-		{
-			-1, -1,
-			1, -1,
-			-1,  1,
-			1,  1,
-		};
-
-		glGenBuffers(1, &postfx_vertices);
-		glBindBuffer(GL_ARRAY_BUFFER, postfx_vertices);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(fbo_vertices), fbo_vertices, GL_STATIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-		postfx_vertices_attribute = glGetAttribLocation(postfxProgram, "position");
 	}
 
 	void OnDestroy()
@@ -53,7 +33,8 @@ public:
 		glDeleteTextures(1, &depthBuffer);
 		glDeleteFramebuffers(1, &frameBuffer);
 		glDeleteSamplers(1, &colorSampler);
-		glDeleteBuffers(1, &postfx_vertices);
+		glDeleteTextures(1, &colorBuffer2);
+		glDeleteFramebuffers(1, &frameBuffer2);
 		glDeleteProgram(postfxProgram);
 	}
 
@@ -106,17 +87,11 @@ public:
 			GL_RGBA, frameWidth, frameHeight, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		glGenerateMipmap(GL_TEXTURE_2D);
-		glGenSamplers(1, &colorSampler2);
-		glSamplerParameteri(colorSampler2, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glSamplerParameteri(colorSampler2, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glSamplerParameteri(colorSampler2, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glSamplerParameteri(colorSampler2, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
 		// Frame Buffer 2 setup
 		glGenFramebuffers(1, &frameBuffer2);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer2);
 		glFramebufferTexture(GL_DRAW_FRAMEBUFFER,  /* attachment */ GL_COLOR_ATTACHMENT0, /* texture */ colorBuffer2, /* mipmap level */ 0);
-		glFramebufferTexture(GL_DRAW_FRAMEBUFFER,  /* attachment */ GL_DEPTH_ATTACHMENT, /* texture */ depthBuffer, /* mipmap level */ 0);
 
 		// Fragment shader output
 		GLenum buffers2[] = { GL_COLOR_ATTACHMENT0 };
@@ -128,14 +103,42 @@ public:
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	}
 
-	void DrawPostEffect()
+	void BeginPostEffect()
+	{
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer2);
+		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer2, 0);
+	}
+
+	void EndPostEffect()
+	{
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBuffer2);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer);
+		glViewport(0, 0, frameWidth, frameHeight);
+		glClearColor(0, 0, 0, 1);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glBlitFramebuffer(
+			0, 0, frameWidth, frameHeight,
+			0, 0, frameWidth, frameHeight,
+			GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	}
+
+	void DrawPostEffects()
 	{
 		glDisable(GL_DEPTH_TEST);
 
-		// Render frame buffer to secondary one with shader
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer2);
-		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer2, 0);
+		/*BeginPostEffect();
+		DrawScreenSpaceReflections();
+		EndPostEffect();*/
 
+		// Reset before ending
+		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer, 0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glUseProgram(0);
+		glEnable(GL_DEPTH_TEST);
+	}
+
+	void DrawScreenSpaceReflections()
+	{
 		glUseProgram(postfxProgram);
 		int id = glGetUniformLocation(postfxProgram, "colorBuffer");
 		if (id >= 0 && colorBuffer >= 0)
@@ -146,32 +149,10 @@ public:
 			glBindSampler(unit, 0);
 			glUniform1i(id, unit);
 		}
-
-		glEnableVertexAttribArray(postfx_vertices_attribute);
-		glBindBuffer(GL_ARRAY_BUFFER, postfx_vertices);
-		glVertexAttribPointer(postfx_vertices_attribute, 2, GL_FLOAT, GL_FALSE, 0, 0);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		glDisableVertexAttribArray(postfx_vertices_attribute);
-
-
-		// Blit back to principal frame buffer
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBuffer2);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer);
-		glViewport(0, 0, window_width(), window_height());
-		glClearColor(0, 0, 0, 1);
-		glClear(GL_COLOR_BUFFER_BIT);
-		glBlitFramebuffer(
-			0, 0, frameWidth, frameHeight,
-			0, 0, frameWidth, frameHeight,
-			GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer, 0);
-
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glUseProgram(0);
-
-		glEnable(GL_DEPTH_TEST);
 	}
+
+
 
 
 	GLuint GetFrameBuffer()
@@ -200,10 +181,7 @@ public:
 	/*!
 	*  \brief Récupère l'inverse de la matrice du monde.
 	*/
-	Transform GetViewMatrix()
-	{
-		return gameObject->GetObjectToWorldMatrix().inverse();
-	}
+	Transform GetViewMatrix();
 
 	/*!
 	*  \brief Récupère la matrice de projection orthographique.

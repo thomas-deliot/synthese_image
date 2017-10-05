@@ -16,6 +16,7 @@
 #include "RotateObjectMouse.h"
 #include "Camera.h"
 #include "DirectionalLight.h"
+#include "Skybox.h"
 
 #include <chrono>
 
@@ -35,6 +36,7 @@ private:
 	Camera* mainCamera;
 	DirectionalLight* mainLight;
 	Color ambientLight = Color(0.1f, 0.1f, 0.1f, 0.1f);
+	Skybox* skybox;
 
 public:
 	Engine() : App(800, 800) {}
@@ -54,7 +56,7 @@ public:
 		{
 			vector<Component*> components = gameObjects[i]->GetAllComponents();
 			for (int j = 0; j < components.size(); j++)
-				components[j]->OnStart();
+				components[j]->Start();
 		}
 
 		// etat openGL par defaut
@@ -94,6 +96,7 @@ public:
 		glViewport(0, 0, frameWidth, frameHeight);
 		glClearColor(1, 1, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		skybox->Draw(mainCamera);
 		for (int i = 0; i < gameObjects.size(); i++)
 		{
 			MeshRenderer* renderer = gameObjects[i]->GetComponent<MeshRenderer>();
@@ -104,9 +107,9 @@ public:
 		glUseProgram(0);
 
 		// Draw post effects
-		mainCamera->DrawPostEffect();
+		mainCamera->DrawPostEffects();
 
-		// Draw to screen
+		// Blit to screen
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, mainCamera->GetFrameBuffer());
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glViewport(0, 0, window_width(), window_height());
@@ -152,8 +155,8 @@ public:
 		rootObject->AddChild(guy4);
 		guy4->SetPosition(0.0f, 0.0f, 0.0f);
 		renderer5->SetColor(Color(1.0, 1.0, 1.0, 1.0));
-		RotateObjectMouse* rotater = new RotateObjectMouse();
-		guy4->AddComponent(rotater);
+		//RotateObjectMouse* rotater = new RotateObjectMouse();
+		//guy4->AddComponent(rotater);
 
 		// Set up light
 		GameObject* lightObject = new GameObject();
@@ -163,6 +166,8 @@ public:
 		lightObject->RotateAroundRadian(Vector(1, 0, 0), 45);
 		mainLight = new DirectionalLight(1.0f, White());
 		lightObject->AddComponent(mainLight);
+		rootObject->AddChild(lightObject);
+		gameObjects.push_back(lightObject);
 
 		// Set up camera
 		GameObject* cameraObject = new GameObject();
@@ -173,8 +178,18 @@ public:
 		rootObject->AddChild(cameraObject);
 		cameraObject->SetPosition(0.0f, 0.0f, 35.0f);
 		mainCamera->SetupFrameBuffer(frameWidth, frameHeight);
-		//FlyCamera* flyCam = new FlyCamera();
-		//cameraObject->AddComponent(flyCam);
+		FlyCamera* flyCam = new FlyCamera();
+		cameraObject->AddComponent(flyCam);
+
+		// Set up skybox
+		skybox = new Skybox();
+		lightObject->AddComponent(skybox);
+		skybox->CreateCubeMap("m2tp/Scene/Skybox1/posz.jpg",
+			"m2tp/Scene/Skybox1/negz.jpg",
+			"m2tp/Scene/Skybox1/posy.jpg",
+			"m2tp/Scene/Skybox1/negy.jpg",
+			"m2tp/Scene/Skybox1/posx.jpg",
+			"m2tp/Scene/Skybox1/negx.jpg");
 	}
 
 	void DisplayGUI()

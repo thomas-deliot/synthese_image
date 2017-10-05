@@ -45,7 +45,7 @@ public:
 	*  \brief Fonction appellée au lancement de l'application. Initialise le terrain avec
 	*	les paramètres donnés au constructeur.
 	*/
-	void OnStart()
+	void Start()
 	{
 		renderer = this->gameObject->GetComponent<MeshRenderer>();
 		image = CImg<float>(heightmap.c_str());

@@ -17,7 +17,7 @@ public:
 	/*!
 	*  \brief fonction appelée au lancement de l'application pour tous les composants.
 	*/
-	virtual void OnStart() {}
+	virtual void Start() {}
 
 	/*!
 	*  \brief fonction appelée à la fermeture de l'application pour tous les composants.
