@@ -2,14 +2,23 @@
 #version 330
 
 #ifdef VERTEX_SHADER
+uniform vec3 nearTopLeft;
+uniform vec3 nearTopRight;
+uniform vec3 nearBottomRight;
+uniform vec3 nearBottomLeft;
+
 const vec2 quadVertices[4] = vec2[4]( vec2( -1.0, -1.0), vec2( 1.0, -1.0), vec2( -1.0, 1.0), vec2( 1.0, 1.0));
 
 out vec2 vtexcoord;
+out vec3 vViewPos;
 
 void main( )
 {
 	gl_Position = vec4(quadVertices[gl_VertexID], 0.0, 1.0);
 	vtexcoord = (quadVertices[gl_VertexID] + 1.0) / 2.0;
+	vViewPos.x = mix(nearBottomLeft.x, nearBottomRight.x, vtexcoord.x);
+	vViewPos.y = mix(nearBottomLeft.y, nearTopLeft.y, vtexcoord.y);
+	vViewPos.z = nearBottomLeft.z;
 }
 #endif
 
@@ -20,16 +29,18 @@ void main( )
 uniform sampler2D colorBuffer;
 uniform sampler2D csZBuffer;
 uniform vec2 csZBufferSize;
-uniform mat4x4 proj;
+uniform mat4 invProj;
+uniform mat4 proj;
 uniform float nearPlaneZ;
 uniform float zThickness;
 
 const float maxSteps = 256;
-const float maxDistance = 2.0f;
-const float jitter = 0.0f;
-const float stride = 1.0f;
+const float maxDistance = 2.0;
+const float jitter = 0.0;
+const float stride = 1.0;
 
 in vec2 vtexcoord;
+in vec3 vViewPos;
 
 out vec4 pixelColor;
 
@@ -56,6 +67,8 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
     vec3 Q0 = csOrig * k0, Q1 = csEndPoint * k1;
  
     // Screen-space endpoints
+	H0.xy = (H0.xy * 0.5 + 0.5) * csZBufferSize;
+	H1.xy = (H1.xy * 0.5 + 0.5) * csZBufferSize;
     vec2 P0 = H0.xy * k0, P1 = H1.xy * k1;
  
     // If the line is degenerate, make it cover at least one pixel
@@ -111,7 +124,10 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
         hitPixel = permute ? P.yx : P;
         // You may need hitPixel.y = csZBufferSize.y - hitPixel.y; here if your vertical axis
         // is different than ours in screen space
-        sceneZMax = texelFetch(csZBuffer, int2(hitPixel), 0);
+		float depthSample = texture(csZBuffer, hitPixel / csZBufferSize).x;
+        vec4 temp = invProj * vec4(0, 0, depthSample, 1.0);
+		temp /= temp.w;
+		sceneZMax = temp.z;
     }
      
     // Advance Q based on the number of steps
@@ -122,6 +138,18 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
 
 void main()
 {
-	pixelColor = 1 - texture(colorBuffer, vtexcoord.xy);
+	vec3 vViewDir = normalize(vViewPos);
+	vec2 hitPixel = vec2(0, 0);
+	vec3 hitPoint = vec3(0, 0, 0);
+	bool lol = traceScreenSpaceRay1(vViewPos, vViewDir, hitPixel, hitPoint);
+	if(lol)
+		pixelColor = vec4(1, 0, 0, 1);
+	else
+		pixelColor = vec4(0, 0, 1, 1);
+		
+	//pixelColor = vec4(vViewDir, 1);
+	
+	//pixelColor = texture(colorBuffer, vtexcoord.xy);
+	//pixelColor = pixelColor * texture(csZBuffer, vtexcoord.xy);
 }
 #endif

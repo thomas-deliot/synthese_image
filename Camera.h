@@ -3,14 +3,20 @@
 #include "Component.h"
 #include "mat.h"
 #include "program.h"
+#include <vector>
+
+using namespace std;
 
 class Camera : public Component
 {
 private:
 	//Transform projectionMatrix = Orthographic(150.0f, 150.0f, 0.1f, 1000.0f);
-	Transform projectionMatrix = Perspective(60.0f, 1.0f, 0.1f, 1000.0f);
+	Transform projectionMatrix;;
 	int frameWidth = 800;
 	int frameHeight = 800;
+	float nearZ = 0.1f;
+	float farZ = 1000.0f;
+	float fov = 60.0f;
 	GLuint frameBuffer;
 	GLuint colorBuffer;
 	GLuint depthBuffer;
@@ -25,6 +31,7 @@ public:
 	void Start()
 	{
 		postfxProgram = read_program("m2tp/Shaders/ssr_fx.glsl");
+		SetParameters(frameWidth, frameHeight, fov, nearZ, farZ);
 	}
 
 	void OnDestroy()
@@ -149,6 +156,30 @@ public:
 			glBindSampler(unit, 0);
 			glUniform1i(id, unit);
 		}
+		id = glGetUniformLocation(postfxProgram, "csZBuffer");
+		if (id >= 0 && depthBuffer >= 0)
+		{
+			int unit = 1;
+			glActiveTexture(GL_TEXTURE0 + unit);
+			glBindTexture(GL_TEXTURE_2D, depthBuffer);
+			glBindSampler(unit, 1);
+			glUniform1i(id, unit);
+		}
+
+		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "proj"), 1, GL_TRUE, projectionMatrix.buffer());
+		Transform invP = projectionMatrix.inverse();
+		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "invProj"), 1, GL_TRUE, invP.buffer());
+		glUniform1f(glGetUniformLocation(postfxProgram, "nearZ"), 0.1f);
+		glUniform1f(glGetUniformLocation(postfxProgram, "zThickness"), 0.0f);
+
+		vector<Vector> frustumNearCorners = GetFrustumNearCorners();
+		for (int i = 0; i < frustumNearCorners.size(); i++)
+			frustumNearCorners[i] = GetViewMatrix()(frustumNearCorners[i]);
+		glUniform3fv(glGetUniformLocation(postfxProgram, "nearTopLeft"), 1, &(frustumNearCorners[0].x));
+		glUniform3fv(glGetUniformLocation(postfxProgram, "nearTopRight"), 1, &(frustumNearCorners[1].x));
+		glUniform3fv(glGetUniformLocation(postfxProgram, "nearBottomRight"), 1, &(frustumNearCorners[2].x));
+		glUniform3fv(glGetUniformLocation(postfxProgram, "nearBottomLeft"), 1, &(frustumNearCorners[3].x));
+
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 
@@ -197,4 +228,6 @@ public:
 			0, 0, -2 / (zfar - znear), -(zfar + znear) / (zfar - znear),
 			0, 0, 0, 1);
 	}
+
+	vector<Vector> GetFrustumNearCorners();
 };

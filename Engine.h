@@ -155,8 +155,8 @@ public:
 		rootObject->AddChild(guy4);
 		guy4->SetPosition(0.0f, 0.0f, 0.0f);
 		renderer5->SetColor(Color(1.0, 1.0, 1.0, 1.0));
-		//RotateObjectMouse* rotater = new RotateObjectMouse();
-		//guy4->AddComponent(rotater);
+		RotateObjectMouse* rotater = new RotateObjectMouse();
+		guy4->AddComponent(rotater);
 
 		// Set up light
 		GameObject* lightObject = new GameObject();
@@ -178,8 +178,8 @@ public:
 		rootObject->AddChild(cameraObject);
 		cameraObject->SetPosition(0.0f, 0.0f, 35.0f);
 		mainCamera->SetupFrameBuffer(frameWidth, frameHeight);
-		FlyCamera* flyCam = new FlyCamera();
-		cameraObject->AddComponent(flyCam);
+		//FlyCamera* flyCam = new FlyCamera();
+		//cameraObject->AddComponent(flyCam);
 
 		// Set up skybox
 		skybox = new Skybox();
