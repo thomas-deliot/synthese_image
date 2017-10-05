@@ -22,15 +22,17 @@
 class Engine : public App
 {
 private:
+	Uint64 lastTime;
+	Uint64 newTime;
+	Text console;
+	unsigned int oldFPSTimer = 0;
+
+	// Scene setup
 	GameObject* rootObject;
 	vector<GameObject*> gameObjects;
 	Camera* mainCamera;
 	DirectionalLight* mainLight;
 	Color ambientLight = Color(0.1f, 0.1f, 0.1f, 0.1f);
-	Uint64 lastTime;
-	Uint64 newTime;
-	Text console;
-	unsigned int oldFPSTimer = 0;
 
 public:
 	Engine() : App(800, 800) {}
@@ -90,7 +92,7 @@ public:
 			if (renderer != nullptr)
 				renderer->Draw(mainCamera, mainLight, ambientLight);
 		}
-		GUI();
+		DisplayGUI();
 		return 1;
 	}
 
@@ -106,6 +108,7 @@ public:
 			for (int j = 0; j < components.size(); j++)
 				components[j]->Update(delta2);
 		}
+
 		lastTime = SDL_GetPerformanceCounter();
 		return 0;
 	}
@@ -118,12 +121,12 @@ public:
 		MeshRenderer* renderer5 = new MeshRenderer();
 		guy4->AddComponent(renderer5);
 		renderer5->LoadMesh("data/bigguy.obj");
-		renderer5->LoadShader("data/shaders/basic_shader.glsl");
+		renderer5->LoadShader("m2tp/Shaders/basic_shader.glsl");
 		renderer5->LoadTexture("data/debug2x2red.png");
 		gameObjects.push_back(guy4);
 		rootObject->AddChild(guy4);
 		guy4->SetPosition(0.0f, 0.0f, 0.0f);
-		renderer5->SetColor(Color(0.9, 0.1, 0.1, 1));
+		renderer5->SetColor(Color(1.0, 1.0, 1.0, 1.0));
 		RotateObjectMouse* rotater = new RotateObjectMouse();
 		guy4->AddComponent(rotater);
 
@@ -148,7 +151,7 @@ public:
 		//cameraObject->AddComponent(flyCam);
 	}
 
-	void GUI()
+	void DisplayGUI()
 	{
 		clear(console);
 		unsigned int currentFPSTimer = SDL_GetTicks();

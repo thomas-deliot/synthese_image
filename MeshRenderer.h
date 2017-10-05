@@ -43,7 +43,7 @@ public:
 		Transform trs = gameObject->GetObjectToWorldMatrix();
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvpMatrix"), 1, GL_TRUE, mvp.buffer());
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "trsMatrix"), 1, GL_TRUE, trs.buffer());
-		glUniform4fv(glGetUniformLocation(shaderProgram, "diffuseColor"), 1, &color.r);
+		glUniform4fv(glGetUniformLocation(shaderProgram, "color"), 1, &color.r);
 		glUniform1f(glGetUniformLocation(shaderProgram, "shininess"), 128.0f);
 
 		Vector camPos = target->GetGameObject()->GetPosition();
@@ -54,6 +54,18 @@ public:
 		glUniform3fv(glGetUniformLocation(shaderProgram, "lightDir"), 1, &lightDir.x);
 		glUniform4fv(glGetUniformLocation(shaderProgram, "lightColor"), 1, &lightColor.r);
 		glUniform1f(glGetUniformLocation(shaderProgram, "lightStrength"), light->GetStrength());
+
+		// If use texture
+		int id = glGetUniformLocation(shaderProgram, "diffuseTex");
+		if (id >= 0 && texture >= 0)
+		{
+			int unit = 0;
+			int sampler = 0;
+			glActiveTexture(GL_TEXTURE0 + unit);
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glBindSampler(unit, sampler);
+			glUniform1i(id, unit);
+		}
 
 		// Draw mesh
 		GLuint vao = mesh.GetVAO();
