@@ -32,6 +32,7 @@ public:
 	void OnDestroy()
 	{
 		release_program(shaderProgram);
+		glDeleteTextures(1, &texture);
 	}
 
 	/*------------- -------------*/

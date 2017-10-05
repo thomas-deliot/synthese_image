@@ -26,6 +26,8 @@ private:
 	Uint64 newTime;
 	Text console;
 	unsigned int oldFPSTimer = 0;
+	int frameWidth = 800;
+	int frameHeight = 800;
 
 	// Scene setup
 	GameObject* rootObject;
@@ -85,6 +87,12 @@ public:
 
 	int render()
 	{
+		// Draw scene
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mainCamera->GetFrameBuffer());
+		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, mainCamera->GetColorBuffer(), 0);
+		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, mainCamera->GetDepthBuffer(), 0);
+		glViewport(0, 0, frameWidth, frameHeight);
+		glClearColor(1, 1, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		for (int i = 0; i < gameObjects.size(); i++)
 		{
@@ -92,6 +100,23 @@ public:
 			if (renderer != nullptr)
 				renderer->Draw(mainCamera, mainLight, ambientLight);
 		}
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glUseProgram(0);
+
+		// Draw post effects
+		mainCamera->DrawPostEffect();
+
+		// Draw to screen
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mainCamera->GetFrameBuffer());
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glViewport(0, 0, window_width(), window_height());
+		glClearColor(0, 0, 0, 1);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glBlitFramebuffer(
+			0, 0, frameWidth, frameHeight,
+			0, 0, frameWidth, frameHeight,
+			GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
 		DisplayGUI();
 		return 1;
 	}
@@ -147,6 +172,7 @@ public:
 		gameObjects.push_back(cameraObject);
 		rootObject->AddChild(cameraObject);
 		cameraObject->SetPosition(0.0f, 0.0f, 35.0f);
+		mainCamera->SetupFrameBuffer(frameWidth, frameHeight);
 		//FlyCamera* flyCam = new FlyCamera();
 		//cameraObject->AddComponent(flyCam);
 	}
