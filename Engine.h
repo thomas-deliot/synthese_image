@@ -170,6 +170,33 @@ public:
 		guy4->SetPosition(10.0f, 0.0f, 0.0f);
 		renderer5->SetColor(Color(1.0, 1.0, 1.0, 1.0));
 
+		GameObject* cube1 = new GameObject();
+		cube1->SetName("cube1");
+		MeshRenderer* renderer2 = new MeshRenderer();
+		cube1->AddComponent(renderer2);
+		renderer2->LoadMesh("data/cube.obj");
+		renderer2->LoadShader("m2tp/Shaders/basic_shader.glsl");
+		renderer2->LoadTexture("data/debug2x2red.png");
+		gameObjects.push_back(cube1);
+		rootObject->AddChild(cube1);
+		cube1->SetPosition(0.0f, -10.0f, 0.0f);
+		cube1->SetScale(40.0f, 1.0f, 40.0f);
+		renderer2->SetColor(Color(1.0, 1.0, 1.0, 1.0));
+
+		GameObject* cube2 = new GameObject();
+		cube2->SetName("cube2");
+		MeshRenderer* renderer3 = new MeshRenderer();
+		cube2->AddComponent(renderer3);
+		renderer3->LoadMesh("data/cube.obj");
+		renderer3->LoadShader("m2tp/Shaders/basic_shader.glsl");
+		renderer3->LoadTexture("data/debug2x2red.png");
+		gameObjects.push_back(cube2);
+		rootObject->AddChild(cube2);
+		cube2->SetPosition(0.0f, 10.0f, -20.0f);
+		cube2->SetScale(40.0f, 1.0f, 40.0f);
+		cube2->RotateAround(Vector(1, 0, 0), -90.0f);
+		renderer3->SetColor(Color(1.0, 1.0, 1.0, 1.0));
+
 		// Set up light
 		GameObject* lightObject = new GameObject();
 		lightObject->SetName("lightObject");

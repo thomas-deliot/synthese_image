@@ -30,13 +30,13 @@ uniform sampler2D colorBuffer;
 uniform sampler2D csZBuffer;
 uniform vec2 csZBufferSize;
 uniform mat4 invProj;
-uniform mat4 proj;
+uniform mat4 projToPixel;
 uniform float nearZ;
 uniform float farZ;
 uniform float zThickness;
 
 const float maxSteps = 256;
-const float maxDistance = 100.0;
+const float maxDistance = 200.0;
 const float jitter = 0.0;
 const float stride = 8.0;
 
@@ -54,23 +54,23 @@ float distanceSquared(vec2 a, vec2 b)
 bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
 	out vec2 hitPixel, out vec3 hitPoint) 
 {
-    // Clip to the near plane    
-    float rayLength = ((csOrig.z + csDir.z * maxDistance) > nearZ) ?
-        (nearZ - csOrig.z) / csDir.z : maxDistance;
+    // Clip to the near plane
+    float rayLength = ((csOrig.z + csDir.z * maxDistance) > -nearZ) ?
+        (-nearZ - csOrig.z) / csDir.z : maxDistance;
     vec3 csEndPoint = csOrig + csDir * rayLength;
  
     // Project into homogeneous clip space
-    vec4 H0 = proj * vec4(csOrig, 1.0);
-    vec4 H1 = proj * vec4(csEndPoint, 1.0);
+    vec4 H0 = projToPixel * vec4(csOrig, 1.0);
+    vec4 H1 = projToPixel * vec4(csEndPoint, 1.0);
     float k0 = 1.0 / H0.w, k1 = 1.0 / H1.w;
  
     // The interpolated homogeneous version of the camera-space points  
     vec3 Q0 = csOrig * k0, Q1 = csEndPoint * k1;
  
     // Screen-space endpoints
-	H0.xy = (H0.xy * 0.5 + 0.5) * csZBufferSize;
-	H1.xy = (H1.xy * 0.5 + 0.5) * csZBufferSize;
-    vec2 P0 = H0.xy * k0, P1 = H1.xy * k1;
+	vec2 P0 = H0.xy * k0, P1 = H1.xy * k1;
+	hitPixel = P0.xy / csZBufferSize;
+	return false;
  
     // If the line is degenerate, make it cover at least one pixel
     // to avoid handling zero-pixel extent as a special case later
@@ -106,7 +106,7 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
     vec3 Q = Q0; 
  
     // Adjust end condition for iteration direction
-    float  end = P1.x * stepDir;
+    float end = P1.x * stepDir;
  
     float k = k0, stepCount = 0.0, prevZMaxEstimate = csOrig.z;
     float rayZMin = prevZMaxEstimate, rayZMax = prevZMaxEstimate;
@@ -122,14 +122,16 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
         prevZMaxEstimate = rayZMax;
         if (rayZMin > rayZMax) 
 		{ 
-           float t = rayZMin; rayZMin = rayZMax; rayZMax = t;
+           float t = rayZMin;
+		   rayZMin = rayZMax;
+		   rayZMax = t;
         }
  
         hitPixel = permute ? P.yx : P;
         // You may need hitPixel.y = csZBufferSize.y - hitPixel.y; here if your vertical axis
         // is different than ours in screen space
 		float tempZ = (2 * nearZ) / (farZ + nearZ - texture(csZBuffer, hitPixel / csZBufferSize).x * (farZ - nearZ));
-		sceneZMax = -(tempZ * (100.0 - 0.1) + 0.1);
+		sceneZMax = -(tempZ * (farZ - nearZ) + nearZ);
     }
      
     // Advance Q based on the number of steps
@@ -141,16 +143,18 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
 void main()
 {
 	float z = (2 * nearZ) / (farZ + nearZ - texture(csZBuffer, vtexcoord).x * (farZ - nearZ));
-	vec3 csOrig = vViewPos + normalize(vViewPos) * (z * (100.0 - 0.1) + 0.1);
+	vec3 csOrig = vViewPos + normalize(vViewPos) * (z * (farZ - nearZ) + nearZ);
 	csOrig.z = -csOrig.z;
 	
-	vec3 csDir = vec3(0, 1, 0);
+	vec3 csDir = normalize(vec3(0, 0, 1));
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
 	bool lol = traceScreenSpaceRay1(csOrig, csDir, hitPixel, hitPoint);
 	
 	pixelColor = texture(colorBuffer, vtexcoord.xy) * vec4(z, 1, 1, 1);
 	pixelColor.x = lol ? 1.0 : 0.0;
+	pixelColor.xyz = vec3(hitPixel.xy, 0);
+	//pixelColor.xyz = vec3(-csOrig.z/farZ, -csOrig.z/farZ, -csOrig.z/farZ);
 	//pixelColor = pixelColor * texture(csZBuffer, vtexcoord.xy);
 }
 #endif

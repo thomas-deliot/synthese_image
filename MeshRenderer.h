@@ -21,7 +21,7 @@ private:
 	Mesh mesh;
 	GLuint texture;
 	GLuint shaderProgram;
-	Color color = Color(1, 0, 0, 1);
+	Color color = Color(1, 1, 1, 1);
 
 public:
 	MeshRenderer() {}

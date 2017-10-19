@@ -166,12 +166,20 @@ public:
 			glUniform1i(id, unit);
 		}
 
-		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "proj"), 1, GL_TRUE, projectionMatrix.buffer());
+		Transform trs = Translation(0.5f, 0.5f, 0.0f);
+		trs = trs * Scale(0.5f, 0.5f, 1.0f);
+		Transform screenScale = Scale(frameWidth, frameHeight, 1.0f);
+		Transform projToPixel = screenScale * trs * projectionMatrix;
+
+		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "projToPixel"), 1, GL_TRUE, projToPixel.buffer());
 		Transform invP = projectionMatrix.inverse();
 		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "invProj"), 1, GL_TRUE, invP.buffer());
 		glUniform1f(glGetUniformLocation(postfxProgram, "nearZ"), nearZ);
 		glUniform1f(glGetUniformLocation(postfxProgram, "farZ"), farZ);
 		glUniform1f(glGetUniformLocation(postfxProgram, "zThickness"), 50.0f);
+		vec2 screenSize = vec2(frameWidth, frameHeight);
+		glUniform2fv(glGetUniformLocation(postfxProgram, "csZBufferSize"), 1, &(screenSize.x));
+
 
 		vector<Vector> frustumNearCorners = GetFrustumNearCorners();
 		for (int i = 0; i < frustumNearCorners.size(); i++)
