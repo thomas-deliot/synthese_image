@@ -41,8 +41,6 @@ in vec2 vtexcoord;
 in vec3 worldPos;
 in vec3 worldNormal;
 
-out vec4 fragment_color;
-
 void main()
 {
 	vec4 diffuseColor = color * texture(diffuseTex, vtexcoord);
@@ -61,8 +59,11 @@ void main()
 	}
 
 	// Final color
-	fragment_color = ambientLight 
+	vec4 fragment_color = ambientLight 
 		+ diffuse * diffuseColor * (lightColor * lightStrength) 
 		+ specular * (lightColor * lightStrength);
+
+	gl_FragData[0] = fragment_color;
+	gl_FragData[1] = vec4(worldNormal, 1.0);
 }
 #endif

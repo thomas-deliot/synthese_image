@@ -19,6 +19,7 @@ private:
 	float fov = 60.0f;
 	GLuint frameBuffer;
 	GLuint colorBuffer;
+	GLuint normalBuffer;
 	GLuint depthBuffer;
 	GLuint colorSampler;
 
@@ -63,11 +64,19 @@ public:
 			GL_RGBA, frameWidth, frameHeight, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		glGenerateMipmap(GL_TEXTURE_2D);
-		glGenSamplers(1, &colorSampler);
+		/*glGenSamplers(1, &colorSampler);
 		glSamplerParameteri(colorSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glSamplerParameteri(colorSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);*/
+
+		// Normal Buffer setup
+		/*glGenTextures(1, &normalBuffer);
+		glBindTexture(GL_TEXTURE_2D, normalBuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0,
+			GL_RGBA, frameWidth, frameHeight, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glGenerateMipmap(GL_TEXTURE_2D);*/
 
 		// Depth Buffer setup
 		glGenTextures(1, &depthBuffer);
@@ -80,10 +89,11 @@ public:
 		glGenFramebuffers(1, &frameBuffer);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer);
 		glFramebufferTexture(GL_DRAW_FRAMEBUFFER,  /* attachment */ GL_COLOR_ATTACHMENT0, /* texture */ colorBuffer, /* mipmap level */ 0);
+		glFramebufferTexture(GL_DRAW_FRAMEBUFFER,  /* attachment */ GL_COLOR_ATTACHMENT1, /* texture */ normalBuffer, /* mipmap level */ 0);
 		glFramebufferTexture(GL_DRAW_FRAMEBUFFER,  /* attachment */ GL_DEPTH_ATTACHMENT, /* texture */ depthBuffer, /* mipmap level */ 0);
 
 		// Fragment shader output
-		GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
+		GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 		glDrawBuffers(1, buffers);
 
 
@@ -98,7 +108,7 @@ public:
 		// Frame Buffer 2 setup
 		glGenFramebuffers(1, &frameBuffer2);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer2);
-		glFramebufferTexture(GL_DRAW_FRAMEBUFFER,  /* attachment */ GL_COLOR_ATTACHMENT0, /* texture */ colorBuffer2, /* mipmap level */ 0);
+		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, /* attachment */ GL_COLOR_ATTACHMENT0, /* texture */ colorBuffer2, /* mipmap level */ 0);
 
 		// Fragment shader output
 		GLenum buffers2[] = { GL_COLOR_ATTACHMENT0 };
@@ -156,7 +166,16 @@ public:
 			glBindSampler(unit, 0);
 			glUniform1i(id, unit);
 		}
-		id = glGetUniformLocation(postfxProgram, "csZBuffer");
+		/*id = glGetUniformLocation(postfxProgram, "normalBuffer");
+		if (id >= 0 && normalBuffer >= 0)
+		{
+			int unit = 1;
+			glActiveTexture(GL_TEXTURE0 + unit);
+			glBindTexture(GL_TEXTURE_2D, normalBuffer);
+			glBindSampler(unit, 1);
+			glUniform1i(id, unit);
+		}*/
+		id = glGetUniformLocation(postfxProgram, "depthBuffer");
 		if (id >= 0 && depthBuffer >= 0)
 		{
 			int unit = 1;
@@ -176,9 +195,8 @@ public:
 		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "invProj"), 1, GL_TRUE, invP.buffer());
 		glUniform1f(glGetUniformLocation(postfxProgram, "nearZ"), nearZ);
 		glUniform1f(glGetUniformLocation(postfxProgram, "farZ"), farZ);
-		glUniform1f(glGetUniformLocation(postfxProgram, "zThickness"), 50.0f);
 		vec2 screenSize = vec2(frameWidth, frameHeight);
-		glUniform2fv(glGetUniformLocation(postfxProgram, "csZBufferSize"), 1, &(screenSize.x));
+		glUniform2fv(glGetUniformLocation(postfxProgram, "renderSize"), 1, &(screenSize.x));
 
 
 		vector<Vector> frustumNearCorners = GetFrustumNearCorners();
@@ -203,6 +221,11 @@ public:
 	GLuint GetColorBuffer()
 	{
 		return colorBuffer;
+	}
+
+	GLuint GetNormalBuffer()
+	{
+		return normalBuffer;
 	}
 
 	GLuint GetDepthBuffer()

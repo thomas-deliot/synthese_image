@@ -92,6 +92,7 @@ public:
 		// Draw scene
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mainCamera->GetFrameBuffer());
 		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, mainCamera->GetColorBuffer(), 0);
+		//glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, mainCamera->GetNormalBuffer(), 0);
 		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, mainCamera->GetDepthBuffer(), 0);
 		glViewport(0, 0, frameWidth, frameHeight);
 		glClearColor(1, 1, 0, 1);
@@ -189,7 +190,7 @@ public:
 		cube2->AddComponent(renderer3);
 		renderer3->LoadMesh("data/cube.obj");
 		renderer3->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer3->LoadTexture("data/debug2x2red.png");
+		renderer3->LoadTexture("data/rainbow.jpg");
 		gameObjects.push_back(cube2);
 		rootObject->AddChild(cube2);
 		cube2->SetPosition(0.0f, 10.0f, -20.0f);
