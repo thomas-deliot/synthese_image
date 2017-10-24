@@ -64,19 +64,19 @@ public:
 			GL_RGBA, frameWidth, frameHeight, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		glGenerateMipmap(GL_TEXTURE_2D);
-		/*glGenSamplers(1, &colorSampler);
+		glGenSamplers(1, &colorSampler);
 		glSamplerParameteri(colorSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glSamplerParameteri(colorSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);*/
+		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
 		// Normal Buffer setup
-		/*glGenTextures(1, &normalBuffer);
+		glGenTextures(1, &normalBuffer);
 		glBindTexture(GL_TEXTURE_2D, normalBuffer);
 		glTexImage2D(GL_TEXTURE_2D, 0,
 			GL_RGBA, frameWidth, frameHeight, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glGenerateMipmap(GL_TEXTURE_2D);*/
+		glGenerateMipmap(GL_TEXTURE_2D);
 
 		// Depth Buffer setup
 		glGenTextures(1, &depthBuffer);
@@ -94,7 +94,7 @@ public:
 
 		// Fragment shader output
 		GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-		glDrawBuffers(1, buffers);
+		glDrawBuffers(2, buffers);
 
 
 		// Color Buffer 2 setup
@@ -149,6 +149,7 @@ public:
 
 		// Reset before ending
 		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer, 0);
+		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, normalBuffer, 0);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glUseProgram(0);
 		glEnable(GL_DEPTH_TEST);
@@ -166,7 +167,7 @@ public:
 			glBindSampler(unit, 0);
 			glUniform1i(id, unit);
 		}
-		/*id = glGetUniformLocation(postfxProgram, "normalBuffer");
+		id = glGetUniformLocation(postfxProgram, "normalBuffer");
 		if (id >= 0 && normalBuffer >= 0)
 		{
 			int unit = 1;
@@ -174,11 +175,11 @@ public:
 			glBindTexture(GL_TEXTURE_2D, normalBuffer);
 			glBindSampler(unit, 1);
 			glUniform1i(id, unit);
-		}*/
+		}
 		id = glGetUniformLocation(postfxProgram, "depthBuffer");
 		if (id >= 0 && depthBuffer >= 0)
 		{
-			int unit = 1;
+			int unit = 2;
 			glActiveTexture(GL_TEXTURE0 + unit);
 			glBindTexture(GL_TEXTURE_2D, depthBuffer);
 			glBindSampler(unit, 1);
@@ -192,7 +193,7 @@ public:
 
 		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "projToPixel"), 1, GL_TRUE, projToPixel.buffer());
 		Transform invP = projectionMatrix.inverse();
-		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "invProj"), 1, GL_TRUE, invP.buffer());
+		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "viewMatrix"), 1, GL_TRUE, GetViewMatrix().buffer());
 		glUniform1f(glGetUniformLocation(postfxProgram, "nearZ"), nearZ);
 		glUniform1f(glGetUniformLocation(postfxProgram, "farZ"), farZ);
 		vec2 screenSize = vec2(frameWidth, frameHeight);

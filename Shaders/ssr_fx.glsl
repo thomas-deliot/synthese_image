@@ -30,15 +30,15 @@ uniform sampler2D colorBuffer;
 uniform sampler2D normalBuffer;
 uniform sampler2D depthBuffer;
 uniform vec2 renderSize;
-uniform mat4 invProj;
+uniform mat4 viewMatrix;
 uniform mat4 projToPixel;
 uniform float nearZ;
 uniform float farZ;
 
-const float maxSteps = 512;
+const float maxSteps = 256;
 const float maxDistance = 200.0;
 const float jitter = 0.0;
-const float stride = 2.0;
+const float stride = 4.0;
 const float zThickness = 0.1;
 
 in vec2 vtexcoord;
@@ -141,15 +141,24 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
 
 void main()
 {
+	// Sample original color
+	pixelColor = texture(colorBuffer, vtexcoord.xy);
+
+	// Calculate world pixel pos and normal
 	float z = (2 * nearZ) / (farZ + nearZ - texture(depthBuffer, vtexcoord).x * (farZ - nearZ));
-	vec3 csOrig = vViewPos + normalize(vViewPos) * (z * (farZ - nearZ) + nearZ);
-	csOrig.z = -csOrig.z;
+	if(z >= 0.9999f)
+		return;
+
+	vec3 vsPos = vViewPos + normalize(vViewPos) * (z * (farZ - nearZ) + nearZ);
+	vsPos.z = -vsPos.z;
+	vec3 vsNormal = (viewMatrix * vec4(texture(normalBuffer, vtexcoord).xyz, 0)).xyz;
 	
 	// Screen Space Reflection Test
-	vec3 csDir = normalize(vec3(0, 1, -1));
+	vec3 vsReflect = reflect(normalize(vViewPos), vsNormal);
+	vsReflect.z = -vsReflect.z;
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
-	bool hit = traceScreenSpaceRay1(csOrig, csDir, hitPixel, hitPoint);
+	bool hit = traceScreenSpaceRay1(vsPos, vsReflect, hitPixel, hitPoint);
 
 	// Move hit pixel from pixel position to UVs
 	hitPixel /= renderSize;
@@ -157,11 +166,10 @@ void main()
 		hit = false;
 	
 	// Combine colors
-	pixelColor = texture(colorBuffer, vtexcoord.xy);
 	if(hit == true)
 		pixelColor += texture(colorBuffer, hitPixel.xy) * 0.5f;
 
-	pixelColor = texture(colorBuffer, vtexcoord.xy);
+	//pixelColor = vec4(vsReflect.xyz, 1);
 
 	//pixelColor.x = hit ? 1.0 : 0.0;
 	//pixelColor.xyz = vec3(hitPixel.xy, 0);
