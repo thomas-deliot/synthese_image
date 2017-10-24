@@ -37,8 +37,7 @@ uniform float farZ;
 
 const float maxSteps = 256;
 const float maxDistance = 200.0;
-const float jitter = 0.0;
-const float stride = 4.0;
+const float stride = 2.0;
 const float zThickness = 0.1;
 
 in vec2 vtexcoord;
@@ -46,13 +45,13 @@ in vec3 vViewPos;
 
 out vec4 pixelColor;
 
-float distanceSquared(vec2 a, vec2 b) 
+float DistanceSquared(vec2 a, vec2 b) 
 { 
 	a -= b; 
 	return dot(a, a); 
 }
  
-bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
+bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 	out vec2 hitPixel, out vec3 hitPoint) 
 {
     // Clip to the near plane
@@ -73,7 +72,7 @@ bool traceScreenSpaceRay1(vec3 csOrig, vec3 csDir,
  
     // If the line is degenerate, make it cover at least one pixel
     // to avoid handling zero-pixel extent as a special case later
-    P1 += vec2((distanceSquared(P0, P1) < 0.0001) ? 0.01 : 0.0);
+    P1 += vec2((DistanceSquared(P0, P1) < 0.0001) ? 0.01 : 0.0);
     vec2 delta = P1 - P0;
  
     // Permute so that the primary iteration is in x to collapse
@@ -158,22 +157,23 @@ void main()
 	vsReflect.z = -vsReflect.z;
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
-	bool hit = traceScreenSpaceRay1(vsPos, vsReflect, hitPixel, hitPoint);
+	vec2 uv2 = vtexcoord * renderSize;
+	float jitter = mod((uv2.x + uv2.y) * 0.25, 1.0);
+	bool hit = FindSSRHit(vsPos, vsReflect, jitter, hitPixel, hitPoint);
 
 	// Move hit pixel from pixel position to UVs
 	hitPixel /= renderSize;
 	if(hitPixel.x > 1.0f || hitPixel.x < 0.0f || hitPixel.y > 1.0f || hitPixel.y < 0.0f)
-		hit = false;
+		return;
+
+	// Calculate blend factor
+	float blendScreen = 1 - pow(distance(hitPixel.xy, vec2(0.5, 0.5)), 2);
+	float blendBackFace = clamp(-vsReflect.z, 0, 1);
+	float blendDist = 1.0 - (distance(hitPoint, vsPos) / maxDistance);
+	float blend = blendScreen * blendBackFace * blendDist;
 	
 	// Combine colors
-	if(hit == true)
-		pixelColor += texture(colorBuffer, hitPixel.xy) * 0.5f;
-
-	//pixelColor = vec4(vsReflect.xyz, 1);
-
-	//pixelColor.x = hit ? 1.0 : 0.0;
-	//pixelColor.xyz = vec3(hitPixel.xy, 0);
-	//pixelColor.xyz = vec3(-csOrig.z/farZ, -csOrig.z/farZ, -csOrig.z/farZ);
-	//pixelColor = pixelColor * texture(depthBuffer, vtexcoord.xy);
+	vec4 hitColor = texture(colorBuffer, hitPixel.xy);
+	pixelColor = mix(pixelColor, hitColor, blend * 0.5);
 }
 #endif
