@@ -199,14 +199,12 @@ public:
 		vec2 screenSize = vec2(frameWidth, frameHeight);
 		glUniform2fv(glGetUniformLocation(postfxProgram, "renderSize"), 1, &(screenSize.x));
 
-
-		vector<Vector> frustumNearCorners = GetFrustumNearCorners();
-		for (int i = 0; i < frustumNearCorners.size(); i++)
-			frustumNearCorners[i] = GetViewMatrix()(frustumNearCorners[i]);
-		glUniform3fv(glGetUniformLocation(postfxProgram, "nearTopLeft"), 1, &(frustumNearCorners[0].x));
-		glUniform3fv(glGetUniformLocation(postfxProgram, "nearTopRight"), 1, &(frustumNearCorners[1].x));
-		glUniform3fv(glGetUniformLocation(postfxProgram, "nearBottomRight"), 1, &(frustumNearCorners[2].x));
-		glUniform3fv(glGetUniformLocation(postfxProgram, "nearBottomLeft"), 1, &(frustumNearCorners[3].x));
+		Vector near = GetNearBottomLeftCorner();
+		near = GetViewMatrix()(near);
+		Vector far = GetFarBottomLeftCorner();
+		far = GetViewMatrix()(far);
+		glUniform3fv(glGetUniformLocation(postfxProgram, "nearBottomLeft"), 1, &(near.x));
+		glUniform3fv(glGetUniformLocation(postfxProgram, "farBottomLeft"), 1, &(far.x));
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
@@ -263,4 +261,6 @@ public:
 	}
 
 	vector<Vector> GetFrustumNearCorners();
+	Vector GetNearBottomLeftCorner();
+	Vector GetFarBottomLeftCorner();
 };

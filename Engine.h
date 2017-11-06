@@ -145,7 +145,7 @@ public:
 
 	void InitScene()
 	{
-		GameObject* guy = new GameObject();
+		/*GameObject* guy = new GameObject();
 		guy->SetName("guy");
 		MeshRenderer* renderer = new MeshRenderer();
 		guy->AddComponent(renderer);
@@ -156,7 +156,7 @@ public:
 		rootObject->AddChild(guy);
 		guy->SetPosition(10.0f, 0.0f, 0.0f);
 		renderer->SetColor(Color(1.0, 1.0, 1.0, 1.0));
-		RotateObjectMouse* rotater = new RotateObjectMouse();
+		RotateObjectMouse* rotater = new RotateObjectMouse();*/
 		//guy->AddComponent(rotater);
 
 		/*GameObject* guy4 = new GameObject();
@@ -197,6 +197,21 @@ public:
 		cube2->SetScale(40.0f, 1.0f, 40.0f);
 		cube2->RotateAround(Vector(1, 0, 0), -90.0f);
 		renderer3->SetColor(Color(1.0, 1.0, 1.0, 1.0));
+
+		GameObject* cube3 = new GameObject();
+		cube3->SetName("cube3");
+		MeshRenderer* renderer4 = new MeshRenderer();
+		cube3->AddComponent(renderer4);
+		renderer4->LoadMesh("data/cube.obj");
+		renderer4->LoadShader("m2tp/Shaders/basic_shader.glsl");
+		renderer4->LoadTexture("data/rainbow.jpg");
+		gameObjects.push_back(cube3);
+		rootObject->AddChild(cube3);
+		cube3->SetPosition(20.0f, 10.0f, 0.0f);
+		cube3->SetScale(40.0f, 1.0f, 40.0f);
+		cube3->RotateAround(Vector(1, 0, 0), -90.0f);
+		cube3->RotateAround(Vector(0, 1, 0), -90.0f);
+		renderer4->SetColor(Color(1.0, 1.0, 1.0, 1.0));
 
 		// Set up light
 		GameObject* lightObject = new GameObject();
