@@ -17,6 +17,7 @@ vector<Vector> Camera::GetFrustumNearCorners()
 	Vector toTop = gameObject->GetUpVector() * nearZ * tan(fovWHalf * deg2rad);
 
 	vector<Vector> res;
+	Vector lol = gameObject->GetForwardVector();
 	res.push_back(gameObject->GetForwardVector() * nearZ - toRight + toTop); // Top Left
 	res.push_back(gameObject->GetForwardVector() * nearZ + toRight + toTop); // Top Right
 	res.push_back(gameObject->GetForwardVector() * nearZ + toRight - toTop); // Bottom Right

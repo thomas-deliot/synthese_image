@@ -64,6 +64,6 @@ void main()
 		+ specular * (lightColor * lightStrength);
 
 	gl_FragData[0] = fragment_color;
-	gl_FragData[1] = vec4(worldNormal, 1.0);
+	gl_FragData[1] = vec4(worldNormal.xyz * 0.5f + 0.5f, 1.0);
 }
 #endif

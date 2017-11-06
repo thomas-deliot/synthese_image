@@ -154,12 +154,12 @@ public:
 		renderer->LoadTexture("data/debug2x2red.png");
 		gameObjects.push_back(guy);
 		rootObject->AddChild(guy);
-		guy->SetPosition(-10.0f, 0.0f, 0.0f);
+		guy->SetPosition(10.0f, 0.0f, 0.0f);
 		renderer->SetColor(Color(1.0, 1.0, 1.0, 1.0));
 		RotateObjectMouse* rotater = new RotateObjectMouse();
-		guy->AddComponent(rotater);
+		//guy->AddComponent(rotater);
 
-		GameObject* guy4 = new GameObject();
+		/*GameObject* guy4 = new GameObject();
 		guy4->SetName("guy4");
 		MeshRenderer* renderer5 = new MeshRenderer();
 		guy4->AddComponent(renderer5);
@@ -169,7 +169,7 @@ public:
 		gameObjects.push_back(guy4);
 		rootObject->AddChild(guy4);
 		guy4->SetPosition(10.0f, 0.0f, 0.0f);
-		renderer5->SetColor(Color(1.0, 1.0, 1.0, 1.0));
+		renderer5->SetColor(Color(1.0, 1.0, 1.0, 1.0));*/
 
 		GameObject* cube1 = new GameObject();
 		cube1->SetName("cube1");
@@ -220,7 +220,7 @@ public:
 		//cameraObject->RotateAround(cameraObject->GetRightVector(), 90);
 		mainCamera->SetupFrameBuffer(frameWidth, frameHeight);
 		FlyCamera* flyCam = new FlyCamera();
-		//cameraObject->AddComponent(flyCam);
+		cameraObject->AddComponent(flyCam);
 
 		// Set up skybox
 		skybox = new Skybox();

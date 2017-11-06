@@ -10,15 +10,15 @@ uniform vec3 nearBottomLeft;
 const vec2 quadVertices[4] = vec2[4]( vec2( -1.0, -1.0), vec2( 1.0, -1.0), vec2( -1.0, 1.0), vec2( 1.0, 1.0));
 
 out vec2 vtexcoord;
-out vec3 vViewPos;
+out vec3 vsNearPos;
 
 void main( )
 {
 	gl_Position = vec4(quadVertices[gl_VertexID], 0.0, 1.0);
 	vtexcoord = (quadVertices[gl_VertexID] + 1.0) / 2.0;
-	vViewPos.x = mix(nearBottomLeft.x, nearBottomRight.x, vtexcoord.x);
-	vViewPos.y = mix(nearBottomLeft.y, nearTopLeft.y, vtexcoord.y);
-	vViewPos.z = nearBottomLeft.z;
+	vsNearPos.x = mix(nearBottomLeft.x, nearBottomRight.x, vtexcoord.x);
+	vsNearPos.y = mix(nearBottomLeft.y, nearTopLeft.y, vtexcoord.y);
+	vsNearPos.z = -nearBottomLeft.z;
 }
 #endif
 
@@ -37,11 +37,11 @@ uniform float farZ;
 
 const float maxSteps = 256;
 const float maxDistance = 200.0;
-const float stride = 2.0;
-const float zThickness = 0.1;
+const float stride = 1.0;
+const float zThickness = 1.0;
 
 in vec2 vtexcoord;
-in vec3 vViewPos;
+in vec3 vsNearPos;
 
 out vec4 pixelColor;
 
@@ -128,6 +128,7 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
         hitPixel = permute ? P.yx : P;
         // You may need hitPixel.y = renderSize.y - hitPixel.y; here if your vertical axis
         // is different than ours in screen space
+		//hitPixel.y = renderSize.y - hitPixel.y;
 		float tempZ = (2 * nearZ) / (farZ + nearZ - texture(depthBuffer, hitPixel / renderSize).x * (farZ - nearZ));
 		sceneZMax = -(tempZ * (farZ - nearZ) + nearZ);
     }
@@ -148,17 +149,17 @@ void main()
 	if(z >= 0.9999f)
 		return;
 
-	vec3 vsPos = vViewPos + normalize(vViewPos) * (z * (farZ - nearZ) + nearZ);
-	vsPos.z = -vsPos.z;
-	vec3 vsNormal = (viewMatrix * vec4(texture(normalBuffer, vtexcoord).xyz, 0)).xyz;
+	vec3 vsPos = vsNearPos + normalize(vsNearPos) * (z * (farZ - nearZ) + nearZ);
+	vec3 vsNormal = (viewMatrix * vec4(texture(normalBuffer, vtexcoord).xyz * 2.0f - 1.0f, 0)).xyz;
+	//vec3 vsNormal = texture(normalBuffer, vtexcoord).xyz * 2.0f - 1.0f;
 	
 	// Screen Space Reflection Test
-	vec3 vsReflect = reflect(normalize(vViewPos), vsNormal);
-	vsReflect.z = -vsReflect.z;
+	vec3 vsReflect = reflect(normalize(vsNearPos), vsNormal);
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
 	vec2 uv2 = vtexcoord * renderSize;
 	float jitter = mod((uv2.x + uv2.y) * 0.25, 1.0);
+	jitter = 0;
 	bool hit = FindSSRHit(vsPos, vsReflect, jitter, hitPixel, hitPoint);
 
 	// Move hit pixel from pixel position to UVs
@@ -173,6 +174,7 @@ void main()
 	float blend = blendScreen * blendBackFace * blendDist;
 	
 	// Combine colors
+	blend = 1;
 	vec4 hitColor = texture(colorBuffer, hitPixel.xy);
 	pixelColor = mix(pixelColor, hitColor, blend * 0.5);
 }

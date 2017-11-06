@@ -221,6 +221,9 @@ public:
 				rotation.m[i][j] = temp[i * 4 + j];
 			}
 		}
+		/*rotation.m[2][0] = -rotation.m[2][0];
+		rotation.m[2][1] = -rotation.m[2][1];
+		rotation.m[2][2] = -rotation.m[2][2];*/
 		MarkTransformAsChanged();
 	}
 
