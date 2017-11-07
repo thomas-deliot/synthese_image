@@ -190,21 +190,14 @@ public:
 		trs = trs * Scale(0.5f, 0.5f, 1.0f);
 		Transform screenScale = Scale(frameWidth, frameHeight, 1.0f);
 		Transform projToPixel = screenScale * trs * projectionMatrix;
-
 		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "projToPixel"), 1, GL_TRUE, projToPixel.buffer());
 		Transform invP = projectionMatrix.inverse();
+		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "invProj"), 1, GL_TRUE, invP.buffer());
 		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "viewMatrix"), 1, GL_TRUE, GetViewMatrix().buffer());
 		glUniform1f(glGetUniformLocation(postfxProgram, "nearZ"), nearZ);
 		glUniform1f(glGetUniformLocation(postfxProgram, "farZ"), farZ);
 		vec2 screenSize = vec2(frameWidth, frameHeight);
 		glUniform2fv(glGetUniformLocation(postfxProgram, "renderSize"), 1, &(screenSize.x));
-
-		Vector near = GetNearBottomLeftCorner();
-		near = GetViewMatrix()(near);
-		Vector far = GetFarBottomLeftCorner();
-		far = GetViewMatrix()(far);
-		glUniform3fv(glGetUniformLocation(postfxProgram, "nearBottomLeft"), 1, &(near.x));
-		glUniform3fv(glGetUniformLocation(postfxProgram, "farBottomLeft"), 1, &(far.x));
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}

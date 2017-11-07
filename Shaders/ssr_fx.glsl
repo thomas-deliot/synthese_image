@@ -2,25 +2,14 @@
 #version 330
 
 #ifdef VERTEX_SHADER
-uniform vec3 nearBottomLeft;
-uniform vec3 farBottomLeft;
-
 const vec2 quadVertices[4] = vec2[4]( vec2( -1.0, -1.0), vec2( 1.0, -1.0), vec2( -1.0, 1.0), vec2( 1.0, 1.0));
 
 out vec2 vtexcoord;
-out vec3 vsNearPos;
-out vec3 vsFarPos;
 
 void main( )
 {
 	gl_Position = vec4(quadVertices[gl_VertexID], 0.0, 1.0);
 	vtexcoord = (quadVertices[gl_VertexID] + 1.0) / 2.0;
-	vsNearPos.x = mix(nearBottomLeft.x, -nearBottomLeft.x, vtexcoord.x);
-	vsNearPos.y = mix(nearBottomLeft.y, -nearBottomLeft.y, vtexcoord.y);
-	vsNearPos.z = -nearBottomLeft.z;
-	vsFarPos.x = mix(farBottomLeft.x, -farBottomLeft.x, vtexcoord.x);
-	vsFarPos.y = mix(farBottomLeft.y, -farBottomLeft.y, vtexcoord.y);
-	vsFarPos.z = -farBottomLeft.z;
 }
 #endif
 
@@ -34,6 +23,7 @@ uniform sampler2D depthBuffer;
 uniform vec2 renderSize;
 uniform mat4 viewMatrix;
 uniform mat4 projToPixel;
+uniform mat4 invProj;
 uniform float nearZ;
 uniform float farZ;
 
@@ -43,8 +33,6 @@ const float stride = 2.0;
 const float zThickness = 1.0;
 
 in vec2 vtexcoord;
-in vec3 vsNearPos;
-in vec3 vsFarPos;
 
 out vec4 pixelColor;
 
@@ -151,12 +139,14 @@ void main()
 	float z = texture(depthBuffer, vtexcoord).x;
 	if(z >= 0.9999f)
 		return;
-	vec3 vsRayDir = normalize(vsNearPos);
-	vec3 vsPos = vsNearPos + z * (vsFarPos - vsNearPos);
+	vec4 clipSpacePosition = vec4(vtexcoord * 2.0 - 1.0, z * 2.0 - 1.0, 1);
+	vec4 viewSpacePosition = invProj * clipSpacePosition;
+	viewSpacePosition /= viewSpacePosition.w;
+	vec3 vsPos = viewSpacePosition.xyz;
 	vec3 vsNormal = normalize((viewMatrix * vec4(texture(normalBuffer, vtexcoord).xyz * 2.0f - 1.0f, 0)).xyz);
-	//vec3 vsNormal = texture(normalBuffer, vtexcoord).xyz * 2.0f - 1.0f;
 
 	// Screen Space Reflection Test
+	vec3 vsRayDir = normalize(vsPos);
 	vec3 vsReflect = normalize(reflect(vsRayDir, vsNormal));
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
