@@ -27,8 +27,8 @@ private:
 	Uint64 newTime;
 	Text console;
 	unsigned int oldFPSTimer = 0;
-	int frameWidth = 800;
-	int frameHeight = 800;
+	int frameWidth = 600;
+	int frameHeight = 600;
 
 	// Scene setup
 	GameObject* rootObject;
@@ -39,7 +39,7 @@ private:
 	Skybox* skybox;
 
 public:
-	Engine() : App(800, 800) {}
+	Engine() : App(600, 600) {}
 
 	int init()
 	{

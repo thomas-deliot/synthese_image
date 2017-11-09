@@ -30,7 +30,7 @@ uniform float farZ;
 const float maxSteps = 256;
 const float maxDistance = 100.0;
 const float stride = 2.0;
-const float zThickness = 1.0;
+const float zThickness = 2.0;
 
 in vec2 vtexcoord;
 
@@ -40,6 +40,18 @@ float DistanceSquared(vec2 a, vec2 b)
 { 
 	a -= b; 
 	return dot(a, a); 
+}
+
+float Linear01Depth(float z)
+{
+	float temp = farZ / nearZ;
+	return 1.0 / ((1.0 - temp) * z + temp);
+}
+
+float LinearEyeDepth(float z)
+{
+	float temp = farZ / nearZ;
+	return 1.0 / ((1.0 - temp) / farZ * z + temp / farZ);
 }
  
 bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
@@ -91,43 +103,36 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 	dP *= stride; dQ *= stride; dk *= stride;
 	P0 += dP * jitter; Q0 += dQ * jitter; k0 += dk * jitter;
 
-	// Slide P from P0 to P1, (now-homogeneous) Q from Q0 to Q1, k from k0 to k1
-	vec3 Q = Q0; 
-
-	// Adjust end condition for iteration direction
-	float end = P1.x * stepDir;
-
-	float k = k0, stepCount = 0.0, prevZMaxEstimate = csOrig.z;
-	float rayZMin = prevZMaxEstimate, rayZMax = prevZMaxEstimate;
-	float sceneZMax = rayZMax + 100;
-	for (vec2 P = P0; 
-		((P.x * stepDir) <= end) && (stepCount < maxSteps) &&
-			((rayZMax < sceneZMax - zThickness) || (rayZMin > sceneZMax)) &&
-			(sceneZMax != 0); 
-			P += dP, Q.z += dQ.z, k += dk, ++stepCount) 
+	float i, zA = 0.0, zB = 0.0;
+	vec4 pqk = vec4(P0, Q0.z, k0);
+	vec4 dPQK = vec4(dP, dQ.z, dk);
+	bool intersect = false;
+	for (i = 0; i < maxSteps && intersect == false; i++) 
 	{
-		rayZMin = prevZMaxEstimate;
-		rayZMax = (dQ.z * 0.5 + Q.z) / (dk * 0.5 + k);
-		prevZMaxEstimate = rayZMax;
-		if (rayZMin > rayZMax) 
+		pqk += dPQK;
+
+		zA = zB;
+		zB = (dPQK.z * 0.5 + pqk.z) / (dPQK.w * 0.5 + pqk.w);
+		if (zB > zA) 
 		{ 
-			float t = rayZMin;
-			rayZMin = rayZMax;
-			rayZMax = t;
+			float t = zA;
+			zA = zB;
+			zB = t;
 		}
  
-		hitPixel = permute ? P.yx : P;
-		// You may need hitPixel.y = renderSize.y - hitPixel.y; here if your vertical axis
-		// is different than ours in screen space
+		hitPixel = permute ? pqk.yx : pqk.xy;
 		//hitPixel.y = renderSize.y - hitPixel.y;
-		float tempZ = (2 * nearZ) / (farZ + nearZ - texture(depthBuffer, hitPixel / renderSize).x * (farZ - nearZ));
-		sceneZMax = -(tempZ * (farZ - nearZ) + nearZ);
+
+		hitPixel = hitPixel / renderSize;
+		float cameraZ = Linear01Depth(texture(depthBuffer, hitPixel).x) * -farZ;
+		intersect = zB <= cameraZ && zA >= cameraZ - zThickness;
 	}
 
 	// Advance Q based on the number of steps
-	Q.xy += dQ.xy * stepCount;
-	hitPoint = Q * (1.0 / k);
-	return (rayZMax >= sceneZMax - zThickness) && (rayZMin < sceneZMax);
+	Q0.xy += dQ.xy * i;
+	Q0.z = pqk.z;
+	hitPoint = Q0 / pqk.w;
+	return intersect;
 }
 
 void main()
@@ -139,11 +144,11 @@ void main()
 	float z = texture(depthBuffer, vtexcoord).x;
 	if(z >= 0.9999f)
 		return;
-	vec4 clipSpacePosition = vec4(vtexcoord * 2.0 - 1.0, z * 2.0 - 1.0, 1);
+	vec4 clipSpacePosition = vec4(vtexcoord.xy * 2.0 - 1.0, z * 2.0 - 1.0, 1);
 	vec4 viewSpacePosition = invProj * clipSpacePosition;
 	viewSpacePosition /= viewSpacePosition.w;
 	vec3 vsPos = viewSpacePosition.xyz;
-	vec3 vsNormal = normalize((viewMatrix * vec4(texture(normalBuffer, vtexcoord).xyz * 2.0f - 1.0f, 0)).xyz);
+	vec3 vsNormal = normalize( mat3(viewMatrix) * (texture(normalBuffer, vtexcoord).xyz * 2.0f - 1.0f) );
 
 	// Screen Space Reflection Test
 	vec3 vsRayDir = normalize(vsPos);
@@ -156,7 +161,6 @@ void main()
 	bool hit = FindSSRHit(vsPos, vsReflect, jitter, hitPixel, hitPoint);
 
 	// Move hit pixel from pixel position to UVs
-	hitPixel /= renderSize;
 	if(hit == false || hitPixel.x > 1.0f || hitPixel.x < 0.0f || hitPixel.y > 1.0f || hitPixel.y < 0.0f)
 		return;
 
