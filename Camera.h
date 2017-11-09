@@ -164,7 +164,7 @@ public:
 			int unit = 0;
 			glActiveTexture(GL_TEXTURE0 + unit);
 			glBindTexture(GL_TEXTURE_2D, colorBuffer);
-			glBindSampler(unit, 0);
+			glBindSampler(unit, colorSampler);
 			glUniform1i(id, unit);
 		}
 		id = glGetUniformLocation(postfxProgram, "normalBuffer");

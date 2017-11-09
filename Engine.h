@@ -204,7 +204,7 @@ public:
 		cube3->AddComponent(renderer4);
 		renderer4->LoadMesh("data/cube.obj");
 		renderer4->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer4->LoadTexture("data/debug2x2red.jpg");
+		renderer4->LoadTexture("data/debug2x2red.png");
 		gameObjects.push_back(cube3);
 		rootObject->AddChild(cube3);
 		cube3->SetPosition(20.0f, 10.0f, 0.0f);

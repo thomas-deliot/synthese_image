@@ -28,9 +28,10 @@ uniform float nearZ;
 uniform float farZ;
 
 const float maxSteps = 256;
-const float maxDistance = 100.0;
+const float maxDistance = 200.0;
 const float stride = 2.0;
-const float zThickness = 2.0;
+const float zThickness = 0.5;
+const float strideZCutoff = 200.0f;
 
 in vec2 vtexcoord;
 
@@ -61,6 +62,8 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 	float rayLength = ((csOrig.z + csDir.z * maxDistance) > -nearZ) ?
 		(-nearZ - csOrig.z) / csDir.z : maxDistance;
 	vec3 csEndPoint = csOrig + csDir * rayLength;
+	//if(csEndPoint.z > csOrig.z)
+	//	return false;
 
 	// Project into homogeneous clip space
 	vec4 H0 = projToPixel * vec4(csOrig, 1.0);
@@ -98,34 +101,38 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 	float dk = (k1 - k0) * invdx;
 	vec2  dP = vec2(stepDir, delta.y * invdx);
 
+	float strideScaler = 1.0 - min( 1.0, -csOrig.z / strideZCutoff);
+	float pixelStride = 1.0 + strideScaler * stride;
+
 	// Scale derivatives by the desired pixel stride and then
 	// offset the starting values by the jitter fraction
-	dP *= stride; dQ *= stride; dk *= stride;
+	dP *= pixelStride; dQ *= pixelStride; dk *= pixelStride;
 	P0 += dP * jitter; Q0 += dQ * jitter; k0 += dk * jitter;
 
-	float i, zA = 0.0, zB = 0.0;
+	float end = P1.x * stepDir;
+	float i, zA = csOrig.z, zB = csOrig.z;
 	vec4 pqk = vec4(P0, Q0.z, k0);
 	vec4 dPQK = vec4(dP, dQ.z, dk);
 	bool intersect = false;
-	for (i = 0; i < maxSteps && intersect == false; i++) 
+	for (i = 0; i < maxSteps && intersect == false && pqk.x * stepDir <= end; i++) 
 	{
 		pqk += dPQK;
 
 		zA = zB;
 		zB = (dPQK.z * 0.5 + pqk.z) / (dPQK.w * 0.5 + pqk.w);
-		if (zB > zA) 
+		/*if (zB > zA) 
 		{ 
 			float t = zA;
 			zA = zB;
 			zB = t;
-		}
+		}*/
  
 		hitPixel = permute ? pqk.yx : pqk.xy;
 		//hitPixel.y = renderSize.y - hitPixel.y;
 
 		hitPixel = hitPixel / renderSize;
-		float cameraZ = Linear01Depth(texture(depthBuffer, hitPixel).x) * -farZ;
-		intersect = zB <= cameraZ && zA >= cameraZ - zThickness;
+		float currentZ = Linear01Depth(texture(depthBuffer, hitPixel).x) * -farZ;
+		intersect = zA >= currentZ - zThickness && zB <= currentZ;
 	}
 
 	// Advance Q based on the number of steps
@@ -140,6 +147,7 @@ void main()
 	// Sample original color
 	pixelColor = texture(colorBuffer, vtexcoord.xy);
 
+
 	// Calculate world pixel pos and normal
 	float z = texture(depthBuffer, vtexcoord).x;
 	if(z >= 0.9999f)
@@ -153,6 +161,7 @@ void main()
 	// Screen Space Reflection Test
 	vec3 vsRayDir = normalize(vsPos);
 	vec3 vsReflect = normalize(reflect(vsRayDir, vsNormal));
+	//vsReflect = vec3(0,0,1);
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
 	vec2 uv2 = vtexcoord * renderSize;
@@ -171,7 +180,7 @@ void main()
 	float blend = blendScreen * blendBackFace * blendDist;
 
 	// Combine colors
-	blend = 1;
+	//blend = 1;
 	vec4 hitColor = texture(colorBuffer, hitPixel.xy);
 	pixelColor = mix(pixelColor, hitColor, blend * 0.5);
 }
