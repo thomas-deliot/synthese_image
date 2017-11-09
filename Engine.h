@@ -159,7 +159,7 @@ public:
 		RotateObjectMouse* rotater = new RotateObjectMouse();*/
 		//guy->AddComponent(rotater);
 
-		/*GameObject* guy4 = new GameObject();
+		GameObject* guy4 = new GameObject();
 		guy4->SetName("guy4");
 		MeshRenderer* renderer5 = new MeshRenderer();
 		guy4->AddComponent(renderer5);
@@ -168,8 +168,8 @@ public:
 		renderer5->LoadTexture("data/debug2x2red.png");
 		gameObjects.push_back(guy4);
 		rootObject->AddChild(guy4);
-		guy4->SetPosition(10.0f, 0.0f, 0.0f);
-		renderer5->SetColor(Color(1.0, 1.0, 1.0, 1.0));*/
+		guy4->SetPosition(0.0f, 0.0f, 0.0f);
+		renderer5->SetColor(Color(1.0, 0.0, 0.0, 1.0));
 
 		GameObject* cube1 = new GameObject();
 		cube1->SetName("cube1");

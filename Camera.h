@@ -15,7 +15,7 @@ private:
 	int frameWidth = 800;
 	int frameHeight = 800;
 	float nearZ = 0.1f;
-	float farZ = 100.0f;
+	float farZ = 2000.0f;
 	float fov = 60.0f;
 	GLuint frameBuffer;
 	GLuint colorBuffer;
@@ -173,7 +173,7 @@ public:
 			int unit = 1;
 			glActiveTexture(GL_TEXTURE0 + unit);
 			glBindTexture(GL_TEXTURE_2D, normalBuffer);
-			glBindSampler(unit, 1);
+			glBindSampler(unit, colorSampler);
 			glUniform1i(id, unit);
 		}
 		id = glGetUniformLocation(postfxProgram, "depthBuffer");
@@ -182,7 +182,7 @@ public:
 			int unit = 2;
 			glActiveTexture(GL_TEXTURE0 + unit);
 			glBindTexture(GL_TEXTURE_2D, depthBuffer);
-			glBindSampler(unit, 1);
+			glBindSampler(unit, colorSampler);
 			glUniform1i(id, unit);
 		}
 

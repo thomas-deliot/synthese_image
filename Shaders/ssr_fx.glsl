@@ -28,10 +28,14 @@ uniform float nearZ;
 uniform float farZ;
 
 const float maxSteps = 256;
-const float maxDistance = 200.0;
-const float stride = 2.0;
-const float zThickness = 0.5;
-const float strideZCutoff = 200.0f;
+const float binarySearchIterations = 5;
+const float maxDistance = 100.0;
+const float stride = 8.0;
+const float zThickness = 1.0;
+const float strideZCutoff = 100.0f;
+const float screenEdgeFadeStart = 0.75f;
+const float eyeFadeStart = 0.5f;
+const float eyeFadeEnd = 1.0f;
 
 in vec2 vtexcoord;
 
@@ -56,7 +60,7 @@ float LinearEyeDepth(float z)
 }
  
 bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
-	out vec2 hitPixel, out vec3 hitPoint) 
+	out vec2 hitPixel, out vec3 hitPoint, out float iterations) 
 {
 	// Clip to the near plane
 	float rayLength = ((csOrig.z + csDir.z * maxDistance) > -nearZ) ?
@@ -139,7 +143,36 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 	Q0.xy += dQ.xy * i;
 	Q0.z = pqk.z;
 	hitPoint = Q0 / pqk.w;
+	iterations = i;
 	return intersect;
+}
+
+float ComputeBlendFactorForIntersection(
+		float iterationCount, 
+		vec2 hitPixel,
+		vec3 hitPoint,
+		vec3 vsRayOrigin,
+		vec3 vsRayDirection)
+{
+	float alpha = 1.0f;
+
+	// Fade ray hits that approach the maximum iterations
+	alpha *= 1.0 - (iterationCount / maxSteps);
+
+	// Fade ray hits that approach the screen edge
+	float screenFade = screenEdgeFadeStart;
+	vec2 hitPixelNDC = (hitPixel * 2.0 - 1.0);
+	float maxDimension = min( 1.0, max( abs( hitPixelNDC.x), abs( hitPixelNDC.y)));
+	alpha *= 1.0 - (max( 0.0, maxDimension - screenFade) / (1.0 - screenFade));
+
+	// Fade ray hits base on how much they face the camera
+	float eyeDirection = clamp(vsRayDirection.z, eyeFadeStart, eyeFadeEnd);
+	alpha *= 1.0 - ((eyeDirection - eyeFadeStart) / (eyeFadeEnd - eyeFadeStart));
+
+	// Fade ray hits based on distance from ray origin
+	alpha *= 1.0 - clamp(distance(vsRayOrigin, hitPoint) / maxDistance, 0.0, 1.0);
+
+	return alpha;
 }
 
 void main()
@@ -156,32 +189,28 @@ void main()
 	vec4 viewSpacePosition = invProj * clipSpacePosition;
 	viewSpacePosition /= viewSpacePosition.w;
 	vec3 vsPos = viewSpacePosition.xyz;
-	vec3 vsNormal = normalize( mat3(viewMatrix) * (texture(normalBuffer, vtexcoord).xyz * 2.0f - 1.0f) );
+	vec3 vsNormal = mat3(viewMatrix) * (texture(normalBuffer, vtexcoord).xyz * 2.0f - 1.0f);
 
 	// Screen Space Reflection Test
 	vec3 vsRayDir = normalize(vsPos);
-	vec3 vsReflect = normalize(reflect(vsRayDir, vsNormal));
+	vec3 vsReflect = reflect(vsRayDir, vsNormal);
 	//vsReflect = vec3(0,0,1);
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
 	vec2 uv2 = vtexcoord * renderSize;
 	float jitter = mod((uv2.x + uv2.y) * 0.25, 1.0);
-	jitter = 0;
-	bool hit = FindSSRHit(vsPos, vsReflect, jitter, hitPixel, hitPoint);
+	float iterations = 0;
+	bool hit = FindSSRHit(vsPos, vsReflect, jitter, hitPixel, hitPoint, iterations);
 
 	// Move hit pixel from pixel position to UVs
 	if(hit == false || hitPixel.x > 1.0f || hitPixel.x < 0.0f || hitPixel.y > 1.0f || hitPixel.y < 0.0f)
 		return;
 
 	// Calculate blend factor
-	float blendScreen = 1 - pow(distance(hitPixel.xy, vec2(0.5, 0.5)), 2);
-	float blendBackFace = clamp(-vsReflect.z, 0, 1);
-	float blendDist = 1.0 - (distance(hitPoint, vsPos) / maxDistance);
-	float blend = blendScreen * blendBackFace * blendDist;
+	float blend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect) * 0.5f;
 
 	// Combine colors
-	//blend = 1;
 	vec4 hitColor = texture(colorBuffer, hitPixel.xy);
-	pixelColor = mix(pixelColor, hitColor, blend * 0.5);
+	pixelColor = mix(pixelColor, hitColor, blend);
 }
 #endif
