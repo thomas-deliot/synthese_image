@@ -1,8 +1,13 @@
 #pragma once
 
 #include "Component.h"
+#include "DirectionalLight.h"
+
 #include "mat.h"
+#include "wavefront.h"
+#include "texture.h"
 #include "program.h"
+#include "uniforms.h"
 #include <vector>
 
 using namespace std;
@@ -24,14 +29,16 @@ private:
 	GLuint colorSampler;
 
 	// Post effect
-	GLuint postfxProgram;
+	GLuint finalDeferred;
+	GLuint finalDeferredSSR;
 	GLuint frameBuffer2;
 	GLuint colorBuffer2;
 
 public:
 	void Start()
 	{
-		postfxProgram = read_program("m2tp/Shaders/ssr_fx.glsl");
+		finalDeferred = read_program("m2tp/Shaders/finalDeferred.glsl");
+		finalDeferredSSR = read_program("m2tp/Shaders/finalDeferredSSR.glsl");
 		SetParameters(frameWidth, frameHeight, fov, nearZ, farZ);
 	}
 
@@ -43,7 +50,8 @@ public:
 		glDeleteSamplers(1, &colorSampler);
 		glDeleteTextures(1, &colorBuffer2);
 		glDeleteFramebuffers(1, &frameBuffer2);
-		glDeleteProgram(postfxProgram);
+		glDeleteProgram(finalDeferred);
+		glDeleteProgram(finalDeferredSSR);
 	}
 
 	void SetParameters(const float width, const float height, const float fov, const float nearZ, const float farZ)
@@ -120,6 +128,13 @@ public:
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	}
 
+	void FinishDeferredRendering(DirectionalLight* light, Color ambientLight)
+	{
+		BeginPostEffect();
+		FinalDeferredPass(light, ambientLight);
+		EndPostEffect();
+	}
+
 	void BeginPostEffect()
 	{
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer2);
@@ -139,26 +154,12 @@ public:
 			GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	}
 
-	void DrawPostEffects()
+	void FinalDeferredPass(DirectionalLight* light, Color ambientLight);
+
+	void FinalDeferredPassSSR()
 	{
-		glDisable(GL_DEPTH_TEST);
-
-		BeginPostEffect();
-		DrawScreenSpaceReflections();
-		EndPostEffect();
-
-		// Reset before ending
-		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer, 0);
-		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, normalBuffer, 0);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glUseProgram(0);
-		glEnable(GL_DEPTH_TEST);
-	}
-
-	void DrawScreenSpaceReflections()
-	{
-		glUseProgram(postfxProgram);
-		int id = glGetUniformLocation(postfxProgram, "colorBuffer");
+		glUseProgram(finalDeferredSSR);
+		int id = glGetUniformLocation(finalDeferredSSR, "colorBuffer");
 		if (id >= 0 && colorBuffer >= 0)
 		{
 			int unit = 0;
@@ -167,7 +168,7 @@ public:
 			glBindSampler(unit, colorSampler);
 			glUniform1i(id, unit);
 		}
-		id = glGetUniformLocation(postfxProgram, "normalBuffer");
+		id = glGetUniformLocation(finalDeferredSSR, "normalBuffer");
 		if (id >= 0 && normalBuffer >= 0)
 		{
 			int unit = 1;
@@ -176,7 +177,7 @@ public:
 			glBindSampler(unit, colorSampler);
 			glUniform1i(id, unit);
 		}
-		id = glGetUniformLocation(postfxProgram, "depthBuffer");
+		id = glGetUniformLocation(finalDeferredSSR, "depthBuffer");
 		if (id >= 0 && depthBuffer >= 0)
 		{
 			int unit = 2;
@@ -190,19 +191,33 @@ public:
 		trs = trs * Scale(0.5f, 0.5f, 1.0f);
 		Transform screenScale = Scale(frameWidth, frameHeight, 1.0f);
 		Transform projToPixel = screenScale * trs * projectionMatrix;
-		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "projToPixel"), 1, GL_TRUE, projToPixel.buffer());
+		glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "projToPixel"), 1, GL_TRUE, projToPixel.buffer());
 		Transform invP = projectionMatrix.inverse();
-		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "invProj"), 1, GL_TRUE, invP.buffer());
-		glUniformMatrix4fv(glGetUniformLocation(postfxProgram, "viewMatrix"), 1, GL_TRUE, GetViewMatrix().buffer());
-		glUniform1f(glGetUniformLocation(postfxProgram, "nearZ"), nearZ);
-		glUniform1f(glGetUniformLocation(postfxProgram, "farZ"), farZ);
+		glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "invProj"), 1, GL_TRUE, invP.buffer());
+		glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "viewMatrix"), 1, GL_TRUE, GetViewMatrix().buffer());
+		glUniform1f(glGetUniformLocation(finalDeferredSSR, "nearZ"), nearZ);
+		glUniform1f(glGetUniformLocation(finalDeferredSSR, "farZ"), farZ);
 		vec2 screenSize = vec2(frameWidth, frameHeight);
-		glUniform2fv(glGetUniformLocation(postfxProgram, "renderSize"), 1, &(screenSize.x));
+		glUniform2fv(glGetUniformLocation(finalDeferredSSR, "renderSize"), 1, &(screenSize.x));
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 
+	void DrawPostEffects()
+	{
+		glDisable(GL_DEPTH_TEST);
 
+		/*BeginPostEffect();
+		FinalDeferredPassSSR();
+		EndPostEffect();*/
+
+		// Reset before ending
+		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer, 0);
+		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, normalBuffer, 0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glUseProgram(0);
+		glEnable(GL_DEPTH_TEST);
+	}
 
 
 	GLuint GetFrameBuffer()

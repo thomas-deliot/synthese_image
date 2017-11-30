@@ -102,13 +102,16 @@ public:
 		{
 			MeshRenderer* renderer = gameObjects[i]->GetComponent<MeshRenderer>();
 			if (renderer != nullptr)
-				renderer->Draw(mainCamera, mainLight, ambientLight);
+				renderer->Draw(mainCamera);
 		}
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glUseProgram(0);
 
+		// Final deferred rendering pass (lighting)
+		mainCamera->FinishDeferredRendering(mainLight, ambientLight);
+
 		// Draw post effects
-		mainCamera->DrawPostEffects();
+		//mainCamera->DrawPostEffects();
 
 		// Blit to screen
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, mainCamera->GetFrameBuffer());
@@ -169,7 +172,7 @@ public:
 		gameObjects.push_back(guy4);
 		rootObject->AddChild(guy4);
 		guy4->SetPosition(0.0f, 0.0f, 0.0f);
-		renderer5->SetColor(Color(1.0, 0.0, 0.0, 1.0));
+		renderer5->SetProperties(Color(1.0, 0.0, 0.0, 1.0), 0.25f);
 
 		GameObject* cube1 = new GameObject();
 		cube1->SetName("cube1");
@@ -182,7 +185,7 @@ public:
 		rootObject->AddChild(cube1);
 		cube1->SetPosition(0.0f, -10.0f, 0.0f);
 		cube1->SetScale(40.0f, 1.0f, 40.0f);
-		renderer2->SetColor(Color(1.0, 1.0, 1.0, 1.0));
+		renderer2->SetProperties(Color(1.0, 1.0, 1.0, 1.0), 0.25f);
 
 		GameObject* cube2 = new GameObject();
 		cube2->SetName("cube2");
@@ -196,7 +199,7 @@ public:
 		cube2->SetPosition(0.0f, 10.0f, -20.0f);
 		cube2->SetScale(40.0f, 1.0f, 40.0f);
 		cube2->RotateAround(Vector(1, 0, 0), -90.0f);
-		renderer3->SetColor(Color(1.0, 1.0, 1.0, 1.0));
+		renderer3->SetProperties(Color(1.0, 1.0, 1.0, 1.0), 0.25f);
 
 		GameObject* cube3 = new GameObject();
 		cube3->SetName("cube3");
@@ -211,7 +214,7 @@ public:
 		cube3->SetScale(40.0f, 1.0f, 40.0f);
 		cube3->RotateAround(Vector(1, 0, 0), -90.0f);
 		cube3->RotateAround(Vector(0, 1, 0), -90.0f);
-		renderer4->SetColor(Color(1.0, 1.0, 1.0, 1.0));
+		renderer4->SetProperties(Color(1.0, 1.0, 1.0, 1.0), 0.25f);
 
 		// Set up light
 		GameObject* lightObject = new GameObject();

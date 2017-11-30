@@ -29,12 +29,6 @@ void main( )
 uniform vec4 color;
 uniform float shininess;
 
-uniform vec3 camPos;
-uniform vec4 ambientLight;
-uniform vec3 lightDir;
-uniform vec4 lightColor;
-uniform float lightStrength;
-
 uniform sampler2D diffuseTex;
 
 in vec2 vtexcoord;
@@ -45,25 +39,7 @@ void main()
 {
 	vec4 diffuseColor = color * texture(diffuseTex, vtexcoord);
 
-	// Diffuse term (Lambert)
-	float diffuse = max(0.0, dot(-lightDir, worldNormal));
-
-	// Specular term (Blinn Phong)
-	float specular = 0;
-	if(diffuse > 0)
-	{
-		vec3 viewDir = normalize(camPos - worldPos);
-		vec3 halfDir = normalize(-lightDir + viewDir);
-		float specAngle = max(dot(halfDir, worldNormal), 0.0);
-		specular = pow(specAngle, shininess);
-	}
-
-	// Final color
-	vec4 fragment_color = ambientLight 
-		+ diffuse * diffuseColor * (lightColor * lightStrength) 
-		+ specular * (lightColor * lightStrength);
-
-	gl_FragData[0] = fragment_color;
+	gl_FragData[0] = vec4(diffuseColor.rgb, shininess);
 	gl_FragData[1] = vec4(worldNormal.xyz * 0.5f + 0.5f, 1.0);
 }
 #endif

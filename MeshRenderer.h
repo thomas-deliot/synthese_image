@@ -2,7 +2,6 @@
 
 #include "Component.h"
 #include "Camera.h"
-#include "DirectionalLight.h"
 
 #include "mat.h"
 #include "wavefront.h"
@@ -22,6 +21,7 @@ private:
 	GLuint texture;
 	GLuint shaderProgram;
 	Color color = Color(1, 1, 1, 1);
+	float shininess = 0.0f;
 
 public:
 	MeshRenderer() {}
@@ -36,7 +36,7 @@ public:
 	}
 
 	/*------------- -------------*/
-	void Draw(Camera* target, DirectionalLight* light, Color ambientLight)
+	void Draw(Camera* target)
 	{
 		// Setup shader program for draw
 		glUseProgram(shaderProgram);
@@ -45,16 +45,7 @@ public:
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvpMatrix"), 1, GL_TRUE, mvp.buffer());
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "trsMatrix"), 1, GL_TRUE, trs.buffer());
 		glUniform4fv(glGetUniformLocation(shaderProgram, "color"), 1, &color.r);
-		glUniform1f(glGetUniformLocation(shaderProgram, "shininess"), 128.0f);
-
-		Vector camPos = target->GetGameObject()->GetPosition();
-		Vector lightDir = light->GetGameObject()->GetForwardVector();
-		Color lightColor = light->GetColor();
-		glUniform3fv(glGetUniformLocation(shaderProgram, "camPos"), 1, &camPos.x);
-		glUniform4fv(glGetUniformLocation(shaderProgram, "ambientLight"), 1, &ambientLight.r);
-		glUniform3fv(glGetUniformLocation(shaderProgram, "lightDir"), 1, &lightDir.x);
-		glUniform4fv(glGetUniformLocation(shaderProgram, "lightColor"), 1, &lightColor.r);
-		glUniform1f(glGetUniformLocation(shaderProgram, "lightStrength"), light->GetStrength());
+		glUniform1f(glGetUniformLocation(shaderProgram, "shininess"), shininess);
 
 		// If use texture
 		int id = glGetUniformLocation(shaderProgram, "diffuseTex");
@@ -99,9 +90,10 @@ public:
 		mesh = m;
 	}
 
-	void SetColor(Color c)
+	void SetProperties(Color c, float s)
 	{
 		color = c;
+		shininess = s;
 	}
 
 	/*!
