@@ -138,10 +138,13 @@ public:
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	}
 
-	void FinishDeferredRendering(DirectionalLight* light, Color ambientLight)
+	void FinishDeferredRendering(DirectionalLight* light, Color ambientLight, bool reflections)
 	{
 		BeginPostEffect();
-		FinalDeferredPassSSR(light, ambientLight);
+		if(reflections == true)
+			FinalDeferredPassSSR(light, ambientLight);
+		else
+			FinalDeferredPass(light, ambientLight);
 		EndPostEffect();
 	}
 

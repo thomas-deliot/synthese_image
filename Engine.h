@@ -108,7 +108,7 @@ public:
 		glUseProgram(0);
 
 		// Final deferred rendering pass (lighting)
-		mainCamera->FinishDeferredRendering(mainLight, ambientLight);
+		mainCamera->FinishDeferredRendering(mainLight, ambientLight, false);
 
 		// Draw post effects
 		//mainCamera->DrawPostEffects();
@@ -166,13 +166,13 @@ public:
 		guy4->SetName("guy4");
 		MeshRenderer* renderer5 = new MeshRenderer();
 		guy4->AddComponent(renderer5);
-		renderer5->LoadMesh("data/bigguy.obj");
+		renderer5->LoadMesh("data/shaderball.obj");
 		renderer5->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer5->LoadTexture("data/rainbow.jpg");
+		renderer5->LoadPBRTextures("m2tp/Textures/rustediron_albedo.png", "m2tp/Textures/rustediron_roughness.png", "m2tp/Textures/rustediron_metalness.png");
 		gameObjects.push_back(guy4);
 		rootObject->AddChild(guy4);
-		guy4->SetPosition(0.0f, 0.0f, 0.0f);
-		renderer5->SetProperties(Color(1.0, 0.0, 0.0, 1.0), 0.1f);
+		guy4->SetPosition(0.0f, -2.0f, 0.0f);
+		renderer5->SetColor(Color(1.0, 1.0, 1.0, 1.0));
 
 		GameObject* cube1 = new GameObject();
 		cube1->SetName("cube1");
@@ -180,12 +180,13 @@ public:
 		cube1->AddComponent(renderer2);
 		renderer2->LoadMesh("data/cube.obj");
 		renderer2->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer2->LoadTexture("data/debug2x2red.png");
+		//renderer2->LoadTexture("data/debug2x2red.png");
+		renderer2->LoadPBRTextures("m2tp/Textures/rustediron_albedo.png", "m2tp/Textures/rustediron_roughness.png", "m2tp/Textures/rustediron_metalness.png");
 		gameObjects.push_back(cube1);
 		rootObject->AddChild(cube1);
 		cube1->SetPosition(0.0f, -10.0f, 0.0f);
 		cube1->SetScale(40.0f, 1.0f, 40.0f);
-		renderer2->SetProperties(Color(1.0, 1.0, 1.0, 1.0), 0.25f);
+		renderer2->SetColor(Color(1.0, 1.0, 1.0, 1.0));
 
 		GameObject* cube2 = new GameObject();
 		cube2->SetName("cube2");
@@ -193,13 +194,13 @@ public:
 		cube2->AddComponent(renderer3);
 		renderer3->LoadMesh("data/cube.obj");
 		renderer3->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer3->LoadTexture("data/rainbow.jpg");
+		renderer3->LoadPBRTextures("data/debug2x2red.png", "m2tp/Textures/black.jpg", "m2tp/Textures/black.jpg");
 		gameObjects.push_back(cube2);
 		rootObject->AddChild(cube2);
 		cube2->SetPosition(0.0f, 10.0f, -20.0f);
 		cube2->SetScale(40.0f, 1.0f, 40.0f);
 		cube2->RotateAround(Vector(1, 0, 0), -90.0f);
-		renderer3->SetProperties(Color(1.0, 1.0, 1.0, 1.0), 0.25f);
+		renderer3->SetColor(Color(1.0, 1.0, 1.0, 1.0));
 
 		GameObject* cube3 = new GameObject();
 		cube3->SetName("cube3");
@@ -207,22 +208,22 @@ public:
 		cube3->AddComponent(renderer4);
 		renderer4->LoadMesh("data/cube.obj");
 		renderer4->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer4->LoadTexture("data/debug2x2red.png");
+		renderer4->LoadPBRTextures("data/rainbow.jpg", "m2tp/Textures/black.jpg", "m2tp/Textures/black.jpg");
 		gameObjects.push_back(cube3);
 		rootObject->AddChild(cube3);
 		cube3->SetPosition(20.0f, 10.0f, 0.0f);
 		cube3->SetScale(40.0f, 1.0f, 40.0f);
 		cube3->RotateAround(Vector(1, 0, 0), -90.0f);
 		cube3->RotateAround(Vector(0, 1, 0), -90.0f);
-		renderer4->SetProperties(Color(1.0, 1.0, 1.0, 1.0), 0.25f);
+		renderer4->SetColor(Color(1.0, 1.0, 1.0, 1.0));
 
 		// Set up light
 		GameObject* lightObject = new GameObject();
 		lightObject->SetName("lightObject");
 		lightObject->SetPosition(0.0f, 0.0f, 0.0f);
-		lightObject->RotateAroundRadian(Vector(0, 1, 0), 180);
-		lightObject->RotateAroundRadian(Vector(1, 0, 0), 45);
-		mainLight = new DirectionalLight(1.0f, White());
+		lightObject->RotateAround(Vector(0, 1, 0), 45);
+		lightObject->RotateAround(lightObject->GetRightVector(), 45);
+		mainLight = new DirectionalLight(3.0f, White());
 		lightObject->AddComponent(mainLight);
 		rootObject->AddChild(lightObject);
 		gameObjects.push_back(lightObject);

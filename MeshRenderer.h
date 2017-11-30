@@ -18,10 +18,13 @@ class MeshRenderer : public Component
 {
 private:
 	Mesh mesh;
-	GLuint texture;
+	GLuint albedoTex;
+	GLuint roughTex;
+	GLuint metalTex;
 	GLuint shaderProgram;
+	GLuint colorSampler;
+	GLuint roughSampler;
 	Color color = Color(1, 1, 1, 1);
-	float shininess = 0.0f;
 
 public:
 	MeshRenderer() {}
@@ -32,7 +35,9 @@ public:
 	void OnDestroy()
 	{
 		release_program(shaderProgram);
-		glDeleteTextures(1, &texture);
+		glDeleteTextures(1, &albedoTex);
+		glDeleteTextures(1, &roughTex);
+		glDeleteTextures(1, &metalTex);
 	}
 
 	/*------------- -------------*/
@@ -45,18 +50,28 @@ public:
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvpMatrix"), 1, GL_TRUE, mvp.buffer());
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "trsMatrix"), 1, GL_TRUE, trs.buffer());
 		glUniform4fv(glGetUniformLocation(shaderProgram, "color"), 1, &color.r);
-		glUniform1f(glGetUniformLocation(shaderProgram, "shininess"), shininess);
 
 		// If use texture
-		int id = glGetUniformLocation(shaderProgram, "diffuseTex");
-		if (id >= 0 && texture >= 0)
+		int id = glGetUniformLocation(shaderProgram, "albedoTex");
+		if (id >= 0 && albedoTex >= 0)
 		{
-			int unit = 0;
-			int sampler = 0;
-			glActiveTexture(GL_TEXTURE0 + unit);
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glBindSampler(unit, sampler);
-			glUniform1i(id, unit);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, albedoTex);
+			glUniform1i(id, 0);
+		}
+		id = glGetUniformLocation(shaderProgram, "roughTex");
+		if (id >= 0 && roughTex >= 0)
+		{
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, roughTex);
+			glUniform1i(id, 1);
+		}
+		id = glGetUniformLocation(shaderProgram, "metalTex");
+		if (id >= 0 && metalTex >= 0)
+		{
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, metalTex);
+			glUniform1i(id, 2);
 		}
 
 		// Draw mesh
@@ -90,10 +105,9 @@ public:
 		mesh = m;
 	}
 
-	void SetProperties(Color c, float s)
+	void SetColor(Color c)
 	{
 		color = c;
-		shininess = s;
 	}
 
 	/*!
@@ -102,7 +116,7 @@ public:
 	*/
 	GLuint GetTexture()
 	{
-		return texture;
+		return albedoTex;
 	}
 
 	/*!
@@ -118,7 +132,7 @@ public:
 	*  \brief Assigne un maillage à ce GameObject à partir d'un fichier.
 	*  \param filename le chemin du fichier contenant le maillage à charger.
 	*/
-	void LoadMesh(const char *filename)
+	void LoadMesh(const char* filename)
 	{
 		mesh = read_mesh(filename);
 	}
@@ -127,9 +141,28 @@ public:
 	*  \brief Assigne une texture à ce GameObject à partir d'un fichier.
 	*  \param filename le chemin du fichier contenant la texture à charger.
 	*/
-	void LoadTexture(const char *filename)
+	void LoadTexture(const char* filename)
 	{
-		texture = read_texture(0, filename);
+		albedoTex = read_texture(0, filename);
+		glGenSamplers(1, &colorSampler);
+		glSamplerParameteri(colorSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glSamplerParameteri(colorSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	}
+
+	void LoadPBRTextures(const char* a, const char* r, const char* m)
+	{
+		albedoTex = read_texture(0, a);
+		roughTex = read_texture(0, r);
+		metalTex = read_texture(0, m);
+
+
+		glGenSamplers(1, &roughSampler);
+		glSamplerParameteri(roughSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glSamplerParameteri(roughSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glSamplerParameteri(roughSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glSamplerParameteri(roughSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	}
 
 	/*!

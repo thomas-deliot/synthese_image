@@ -94,6 +94,7 @@ void Camera::FinalDeferredPass(DirectionalLight* light, Color ambientLight)
 	Transform invV = GetViewMatrix().inverse();
 	glUniformMatrix4fv(glGetUniformLocation(finalDeferred, "invProj"), 1, GL_TRUE, invP.buffer());
 	glUniformMatrix4fv(glGetUniformLocation(finalDeferred, "invView"), 1, GL_TRUE, invV.buffer());
+	glUniformMatrix4fv(glGetUniformLocation(finalDeferred, "viewMatrix"), 1, GL_TRUE, GetViewMatrix().buffer());
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }

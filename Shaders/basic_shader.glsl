@@ -27,9 +27,10 @@ void main( )
 
 #ifdef FRAGMENT_SHADER
 uniform vec4 color;
-uniform float shininess;
 
-uniform sampler2D diffuseTex;
+uniform sampler2D albedoTex;
+uniform sampler2D roughTex;
+uniform sampler2D metalTex;
 
 in vec2 vtexcoord;
 in vec3 worldPos;
@@ -37,10 +38,11 @@ in vec3 worldNormal;
 
 void main()
 {
-	vec4 diffuseColor = color * texture(diffuseTex, vtexcoord);
+	vec4 diffuseColor = color * texture(albedoTex, vtexcoord);
+	float roughness = texture(roughTex, vtexcoord).r;
+	float metalness = texture(metalTex, vtexcoord).r;
 
-	gl_FragData[0] = vec4(diffuseColor.rgb, shininess);
-	//gl_FragData[1] = vec4(worldNormal.xyz * 0.5 + 0.5, 1.0);
-	gl_FragData[1] = vec4(worldNormal.xyz, 1.0);
+	gl_FragData[0] = vec4(diffuseColor.rgb, roughness);
+	gl_FragData[1] = vec4(worldNormal.xyz, metalness);
 }
 #endif
