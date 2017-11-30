@@ -27,6 +27,7 @@ private:
 	GLuint normalBuffer;
 	GLuint depthBuffer;
 	GLuint colorSampler;
+	GLuint normalSampler;
 
 	// Post effect
 	GLuint finalDeferred;
@@ -48,6 +49,7 @@ public:
 		glDeleteTextures(1, &depthBuffer);
 		glDeleteFramebuffers(1, &frameBuffer);
 		glDeleteSamplers(1, &colorSampler);
+		glDeleteSamplers(1, &normalSampler);
 		glDeleteTextures(1, &colorBuffer2);
 		glDeleteFramebuffers(1, &frameBuffer2);
 		glDeleteProgram(finalDeferred);
@@ -81,10 +83,18 @@ public:
 		// Normal Buffer setup
 		glGenTextures(1, &normalBuffer);
 		glBindTexture(GL_TEXTURE_2D, normalBuffer);
-		glTexImage2D(GL_TEXTURE_2D, 0,
+		/*glTexImage2D(GL_TEXTURE_2D, 0,
 			GL_RGBA, frameWidth, frameHeight, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);*/
+		glTexImage2D(GL_TEXTURE_2D, 0,
+			GL_RGBA16F, frameWidth, frameHeight, 0,
+			GL_RGBA, GL_HALF_FLOAT, nullptr);
 		glGenerateMipmap(GL_TEXTURE_2D);
+		glGenSamplers(1, &normalSampler);
+		glSamplerParameteri(normalSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glSamplerParameteri(normalSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glSamplerParameteri(normalSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glSamplerParameteri(normalSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
 		// Depth Buffer setup
 		glGenTextures(1, &depthBuffer);
@@ -131,7 +141,7 @@ public:
 	void FinishDeferredRendering(DirectionalLight* light, Color ambientLight)
 	{
 		BeginPostEffect();
-		FinalDeferredPass(light, ambientLight);
+		FinalDeferredPassSSR(light, ambientLight);
 		EndPostEffect();
 	}
 
@@ -156,52 +166,7 @@ public:
 
 	void FinalDeferredPass(DirectionalLight* light, Color ambientLight);
 
-	void FinalDeferredPassSSR()
-	{
-		glUseProgram(finalDeferredSSR);
-		int id = glGetUniformLocation(finalDeferredSSR, "colorBuffer");
-		if (id >= 0 && colorBuffer >= 0)
-		{
-			int unit = 0;
-			glActiveTexture(GL_TEXTURE0 + unit);
-			glBindTexture(GL_TEXTURE_2D, colorBuffer);
-			glBindSampler(unit, colorSampler);
-			glUniform1i(id, unit);
-		}
-		id = glGetUniformLocation(finalDeferredSSR, "normalBuffer");
-		if (id >= 0 && normalBuffer >= 0)
-		{
-			int unit = 1;
-			glActiveTexture(GL_TEXTURE0 + unit);
-			glBindTexture(GL_TEXTURE_2D, normalBuffer);
-			glBindSampler(unit, colorSampler);
-			glUniform1i(id, unit);
-		}
-		id = glGetUniformLocation(finalDeferredSSR, "depthBuffer");
-		if (id >= 0 && depthBuffer >= 0)
-		{
-			int unit = 2;
-			glActiveTexture(GL_TEXTURE0 + unit);
-			glBindTexture(GL_TEXTURE_2D, depthBuffer);
-			glBindSampler(unit, colorSampler);
-			glUniform1i(id, unit);
-		}
-
-		Transform trs = Translation(0.5f, 0.5f, 0.0f);
-		trs = trs * Scale(0.5f, 0.5f, 1.0f);
-		Transform screenScale = Scale(frameWidth, frameHeight, 1.0f);
-		Transform projToPixel = screenScale * trs * projectionMatrix;
-		glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "projToPixel"), 1, GL_TRUE, projToPixel.buffer());
-		Transform invP = projectionMatrix.inverse();
-		glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "invProj"), 1, GL_TRUE, invP.buffer());
-		glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "viewMatrix"), 1, GL_TRUE, GetViewMatrix().buffer());
-		glUniform1f(glGetUniformLocation(finalDeferredSSR, "nearZ"), nearZ);
-		glUniform1f(glGetUniformLocation(finalDeferredSSR, "farZ"), farZ);
-		vec2 screenSize = vec2(frameWidth, frameHeight);
-		glUniform2fv(glGetUniformLocation(finalDeferredSSR, "renderSize"), 1, &(screenSize.x));
-
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	}
+	void FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight);
 
 	void DrawPostEffects()
 	{

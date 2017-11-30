@@ -24,6 +24,7 @@ uniform vec2 renderSize;
 uniform mat4 viewMatrix;
 uniform mat4 projToPixel;
 uniform mat4 invProj;
+uniform mat4 invView;
 uniform float nearZ;
 uniform float farZ;
 
@@ -37,9 +38,15 @@ const float screenEdgeFadeStart = 0.75;
 const float eyeFadeStart = 0.5;
 const float eyeFadeEnd = 1.0;
 
+uniform vec3 camPos;
+uniform vec4 ambientLight;
+uniform vec3 lightDir;
+uniform vec4 lightColor;
+uniform float lightStrength;
+
 in vec2 vtexcoord;
 
-out vec4 pixelColor;
+out vec4 finalColor;
 
 float DistanceSquared(vec2 a, vec2 b) 
 { 
@@ -213,19 +220,24 @@ float ComputeBlendFactorForIntersection(
 
 void main()
 {
-	// Sample original color
-	pixelColor = texture(colorBuffer, vtexcoord.xy);
-
-
-	// Calculate world pixel pos and normal
+	// Sample GBuffer information
+	vec4 temp = texture(colorBuffer, vtexcoord.xy);
+	vec4 diffuseColor = vec4(temp.xyz, 1);
+	float shininess = temp.w * 500.0;
+	vec3 worldNormal = texture(normalBuffer, vtexcoord.xy).xyz;
 	float z = texture(depthBuffer, vtexcoord).x;
 	if(z >= 0.9999f)
+	{
+		finalColor = diffuseColor;
 		return;
+	}
+
+	// Calculate world pixel pos and normal
 	vec4 clipSpacePosition = vec4(vtexcoord.xy * 2.0 - 1.0, z * 2.0 - 1.0, 1);
 	vec4 viewSpacePosition = invProj * clipSpacePosition;
 	viewSpacePosition /= viewSpacePosition.w;
 	vec3 vsPos = viewSpacePosition.xyz;
-	vec3 vsNormal = mat3(viewMatrix) * (texture(normalBuffer, vtexcoord).xyz * 2.0f - 1.0f);
+	vec3 vsNormal = mat3(viewMatrix) * worldNormal;
 
 	// Screen Space Reflection Test
 	vec3 vsRayDir = normalize(vsPos);
@@ -238,15 +250,41 @@ void main()
 	float iterations = 0;
 	bool hit = FindSSRHit(vsPos, vsReflect, jitter, hitPixel, hitPoint, iterations);
 
-	// Move hit pixel from pixel position to UVs
-	if(hit == false || hitPixel.x > 1.0f || hitPixel.x < 0.0f || hitPixel.y > 1.0f || hitPixel.y < 0.0f)
-		return;
-
 	// Calculate blend factor
-	float blend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect) * 0.5f;
-
-	// Combine colors
+	float reflBlend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect);
+	if(hit == false || hitPixel.x > 1.0f || hitPixel.x < 0.0f || hitPixel.y > 1.0f || hitPixel.y < 0.0f)
+		reflBlend = 0;	
 	vec4 hitColor = texture(colorBuffer, hitPixel.xy);
-	pixelColor = mix(pixelColor, hitColor, blend);
+	
+	
+	// Final Lighting computation
+	// Diffuse term (Lambert)
+	float diffTerm = max(0.0, dot(-lightDir, worldNormal));
+	float diffTermRefl = max(0.0, dot(vsReflect, worldNormal));
+
+	// Specular term (Blinn Phong)
+	float specular = 0;
+	if(diffTerm > 0)
+	{
+		vec3 worldPos = mat3(invView) * vsPos;
+		vec3 viewDir = normalize(camPos - worldPos);
+		vec3 halfDir = normalize(-lightDir + viewDir);
+		float specAngle = max(dot(halfDir, worldNormal), 0.0);
+		specular = pow(specAngle, shininess);
+	}
+	float specularRefl = 0;
+	if(diffTermRefl > 0)
+	{
+		vec3 worldPos = mat3(invView) * vsPos;
+		vec3 viewDir = normalize(camPos - worldPos);
+		vec3 halfDir = normalize(vsReflect + viewDir);
+		float specAngle = max(dot(halfDir, worldNormal), 0.0);
+		specularRefl = pow(specAngle, shininess);
+	}
+
+	// Final color
+	finalColor = ambientLight
+		+ diffTerm * diffuseColor * (lightColor * lightStrength) + specular * (lightColor * lightStrength)
+		+ (diffTermRefl * diffuseColor * hitColor + specularRefl * hitColor) * reflBlend;
 }
 #endif

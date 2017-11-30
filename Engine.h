@@ -168,11 +168,11 @@ public:
 		guy4->AddComponent(renderer5);
 		renderer5->LoadMesh("data/bigguy.obj");
 		renderer5->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer5->LoadTexture("data/debug2x2red.png");
+		renderer5->LoadTexture("data/rainbow.jpg");
 		gameObjects.push_back(guy4);
 		rootObject->AddChild(guy4);
 		guy4->SetPosition(0.0f, 0.0f, 0.0f);
-		renderer5->SetProperties(Color(1.0, 0.0, 0.0, 1.0), 0.25f);
+		renderer5->SetProperties(Color(1.0, 0.0, 0.0, 1.0), 0.1f);
 
 		GameObject* cube1 = new GameObject();
 		cube1->SetName("cube1");

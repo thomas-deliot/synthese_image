@@ -40,6 +40,7 @@ void main()
 	vec4 diffuseColor = color * texture(diffuseTex, vtexcoord);
 
 	gl_FragData[0] = vec4(diffuseColor.rgb, shininess);
-	gl_FragData[1] = vec4(worldNormal.xyz * 0.5f + 0.5f, 1.0);
+	//gl_FragData[1] = vec4(worldNormal.xyz * 0.5 + 0.5, 1.0);
+	gl_FragData[1] = vec4(worldNormal.xyz, 1.0);
 }
 #endif
