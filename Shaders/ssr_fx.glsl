@@ -28,14 +28,14 @@ uniform float nearZ;
 uniform float farZ;
 
 const float maxSteps = 256;
-const float binarySearchIterations = 5;
+const float binarySearchIterations = 4;
 const float maxDistance = 100.0;
 const float stride = 8.0;
 const float zThickness = 1.0;
-const float strideZCutoff = 100.0f;
-const float screenEdgeFadeStart = 0.75f;
-const float eyeFadeStart = 0.5f;
-const float eyeFadeEnd = 1.0f;
+const float strideZCutoff = 100.0;
+const float screenEdgeFadeStart = 0.75;
+const float eyeFadeStart = 0.5;
+const float eyeFadeEnd = 1.0;
 
 in vec2 vtexcoord;
 
@@ -137,6 +137,42 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 		hitPixel = hitPixel / renderSize;
 		float currentZ = Linear01Depth(texture(depthBuffer, hitPixel).x) * -farZ;
 		intersect = zA >= currentZ - zThickness && zB <= currentZ;
+	}
+	
+	// Binary search refinement
+	if(pixelStride > 1.0 && intersect)
+	{
+		pqk -= dPQK;
+		dPQK /= pixelStride;
+
+		float originalStride = pixelStride * 0.5;
+	    float stride = originalStride;
+	        		
+	    zA = pqk.z / pqk.w;
+	    zB = zA;	        		
+	    for(float j = 0; j < binarySearchIterations; j++)
+		{
+			pqk += dPQK * stride;
+				    	
+			zA = zB;
+			zB = (dPQK.z * 0.5 + pqk.z) / (dPQK.w * 0.5 + pqk.w);
+	    	if (zB > zA) 
+			{ 
+				float t = zA;
+				zA = zB;
+				zB = t;
+			}
+				    	
+			hitPixel = permute ? pqk.yx : pqk.xy;
+			//hitPixel.y = renderSize.y - hitPixel.y;
+				
+			hitPixel = hitPixel / renderSize;
+			float currentZ = Linear01Depth(texture(depthBuffer, hitPixel).x) * -farZ;
+			bool intersect2 = zA >= currentZ - zThickness && zB <= currentZ;   
+			
+			originalStride *= 0.5;
+			stride = intersect2 ? -originalStride : originalStride;
+		}
 	}
 
 	// Advance Q based on the number of steps

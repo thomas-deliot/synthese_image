@@ -8,12 +8,13 @@ class FlyCamera : public Component
 {
 private:
 	float speed = 0.5f;
+	bool firstFrame = true;
 
 public:
 	/*------------- -------------*/
 	void Start()
 	{
-		gameObject->RotateAround(gameObject->GetForwardVector(), 180.0f);
+
 	}
 
 	void Update(float dt)
@@ -42,6 +43,15 @@ public:
 		// Mouse aiming
 		int mx, my;
 		unsigned int mb = SDL_GetRelativeMouseState(&mx, &my);
+		if (firstFrame == true)
+		{
+			mx = 0;
+			my = 0;
+			firstFrame = false;
+		}
+		mx *= 0.5f;
+		my *= 0.5f;
+		rotationZ *= 0.5f;
 
 		// Update game object
 		Vector position = gameObject->GetPosition();
@@ -49,9 +59,15 @@ public:
 			+ translationZ * speed * gameObject->GetForwardVector();
 		gameObject->SetPosition(position);
 
-		gameObject->RotateAround(Vector(0, 1, 0), mx * 0.5f);
-		gameObject->RotateAround(gameObject->GetRightVector(), my * 0.5f);
-		gameObject->RotateAround(gameObject->GetForwardVector(), rotationZ * 0.5f);
+		TQuaternion<float, Vector> prevRot = gameObject->GetRotation();
+		gameObject->RotateAround(Vector(0, 1, 0), mx);
+		gameObject->RotateAround(gameObject->GetRightVector(), my);
+		gameObject->RotateAround(gameObject->GetForwardVector(), rotationZ);
+
+		// Clamp vertical look
+		Vector forward = gameObject->GetForwardVector();
+		if (forward.y > 0.99f || forward.y < -0.99f)
+			gameObject->SetRotation(prevRot);
 	}
 	/*------------- -------------*/
 };

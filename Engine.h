@@ -27,8 +27,8 @@ private:
 	Uint64 newTime;
 	Text console;
 	unsigned int oldFPSTimer = 0;
-	int frameWidth = 600;
-	int frameHeight = 600;
+	int frameWidth = 1280;
+	int frameHeight = 720;
 
 	// Scene setup
 	GameObject* rootObject;
@@ -39,7 +39,7 @@ private:
 	Skybox* skybox;
 
 public:
-	Engine() : App(600, 600) {}
+	Engine() : App(1280, 720) {}
 
 	int init()
 	{
@@ -232,7 +232,6 @@ public:
 		gameObjects.push_back(cameraObject);
 		rootObject->AddChild(cameraObject);
 		cameraObject->SetPosition(0.0f, 0.0f, 35.0f);
-		//cameraObject->RotateAround(cameraObject->GetRightVector(), 90);
 		mainCamera->SetupFrameBuffer(frameWidth, frameHeight);
 		FlyCamera* flyCam = new FlyCamera();
 		cameraObject->AddComponent(flyCam);

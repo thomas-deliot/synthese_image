@@ -20,7 +20,7 @@ private:
 	Transform scale = Identity();
 	Transform localTRS = Identity();
 	Transform objectToWorld = Identity();
-	TQuaternion<float, Vector> rotationQuat;
+	TQuaternion<float, Vector> rotationQuat = TQuaternion<float, Vector>(0, 0, 0, 1);
 
 	vector<Component*> components;
 	GameObject* parent = nullptr;
@@ -206,6 +206,11 @@ public:
 	/*-------------Scale Functions-------------*/
 
 	/*-------------Rotation Functions-------------*/
+	TQuaternion<float, Vector> GetRotation()
+	{
+		return rotationQuat;
+	}
+
 	/*!
 	*  \brief Applique une rotation locale au gameobject.
 	*  \param : quat la rotation en quaternion.
