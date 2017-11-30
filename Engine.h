@@ -108,7 +108,7 @@ public:
 		glUseProgram(0);
 
 		// Final deferred rendering pass (lighting)
-		mainCamera->FinishDeferredRendering(mainLight, ambientLight, false);
+		mainCamera->FinishDeferredRendering(mainLight, ambientLight, true);
 
 		// Draw post effects
 		//mainCamera->DrawPostEffects();
@@ -167,8 +167,8 @@ public:
 		MeshRenderer* renderer5 = new MeshRenderer();
 		guy4->AddComponent(renderer5);
 		renderer5->LoadMesh("data/shaderball.obj");
-		renderer5->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer5->LoadPBRTextures("m2tp/Textures/rustediron_albedo.png", "m2tp/Textures/rustediron_roughness.png", "m2tp/Textures/rustediron_metalness.png");
+		renderer5->LoadShader("m2tp/Shaders/pbr_shader.glsl");
+		renderer5->LoadPBRTextures("m2tp/Textures/rustediron_albedo.jpg", "m2tp/Textures/rustediron_roughness.jpg", "m2tp/Textures/rustediron_metalness.jpg");
 		gameObjects.push_back(guy4);
 		rootObject->AddChild(guy4);
 		guy4->SetPosition(0.0f, -2.0f, 0.0f);
@@ -179,9 +179,8 @@ public:
 		MeshRenderer* renderer2 = new MeshRenderer();
 		cube1->AddComponent(renderer2);
 		renderer2->LoadMesh("data/cube.obj");
-		renderer2->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		//renderer2->LoadTexture("data/debug2x2red.png");
-		renderer2->LoadPBRTextures("m2tp/Textures/rustediron_albedo.png", "m2tp/Textures/rustediron_roughness.png", "m2tp/Textures/rustediron_metalness.png");
+		renderer2->LoadShader("m2tp/Shaders/pbr_shader.glsl");
+		renderer2->LoadPBRTextures("m2tp/Textures/rustediron_albedo.jpg", "m2tp/Textures/rustediron_roughness.jpg", "m2tp/Textures/rustediron_metalness.jpg");
 		gameObjects.push_back(cube1);
 		rootObject->AddChild(cube1);
 		cube1->SetPosition(0.0f, -10.0f, 0.0f);
@@ -194,7 +193,7 @@ public:
 		cube2->AddComponent(renderer3);
 		renderer3->LoadMesh("data/cube.obj");
 		renderer3->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer3->LoadPBRTextures("data/debug2x2red.png", "m2tp/Textures/black.jpg", "m2tp/Textures/black.jpg");
+		renderer3->LoadTexture("data/debug2x2red.png", 1.0f, 0.0f);
 		gameObjects.push_back(cube2);
 		rootObject->AddChild(cube2);
 		cube2->SetPosition(0.0f, 10.0f, -20.0f);
@@ -208,7 +207,7 @@ public:
 		cube3->AddComponent(renderer4);
 		renderer4->LoadMesh("data/cube.obj");
 		renderer4->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer4->LoadPBRTextures("data/rainbow.jpg", "m2tp/Textures/black.jpg", "m2tp/Textures/black.jpg");
+		renderer4->LoadTexture("data/rainbow.jpg", 1.0f, 0.0f);
 		gameObjects.push_back(cube3);
 		rootObject->AddChild(cube3);
 		cube3->SetPosition(20.0f, 10.0f, 0.0f);

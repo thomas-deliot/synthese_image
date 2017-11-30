@@ -49,8 +49,8 @@ public:
 			my = 0;
 			firstFrame = false;
 		}
-		mx *= 0.5f;
-		my *= 0.5f;
+		float mx2 = mx * 0.5f;
+		float my2 = my * 0.5f;
 		rotationZ *= 0.5f;
 
 		// Update game object
@@ -60,8 +60,8 @@ public:
 		gameObject->SetPosition(position);
 
 		TQuaternion<float, Vector> prevRot = gameObject->GetRotation();
-		gameObject->RotateAround(Vector(0, 1, 0), mx);
-		gameObject->RotateAround(gameObject->GetRightVector(), my);
+		gameObject->RotateAround(Vector(0, 1, 0), mx2);
+		gameObject->RotateAround(gameObject->GetRightVector(), my2);
 		gameObject->RotateAround(gameObject->GetForwardVector(), rotationZ);
 
 		// Clamp vertical look

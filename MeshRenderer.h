@@ -22,9 +22,9 @@ private:
 	GLuint roughTex;
 	GLuint metalTex;
 	GLuint shaderProgram;
-	GLuint colorSampler;
-	GLuint roughSampler;
 	Color color = Color(1, 1, 1, 1);
+	float roughness = 0.0f;
+	float metalness = 0.0f;
 
 public:
 	MeshRenderer() {}
@@ -50,6 +50,8 @@ public:
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvpMatrix"), 1, GL_TRUE, mvp.buffer());
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "trsMatrix"), 1, GL_TRUE, trs.buffer());
 		glUniform4fv(glGetUniformLocation(shaderProgram, "color"), 1, &color.r);
+		glUniform1f(glGetUniformLocation(shaderProgram, "roughness"), roughness);
+		glUniform1f(glGetUniformLocation(shaderProgram, "metalness"), metalness);
 
 		// If use texture
 		int id = glGetUniformLocation(shaderProgram, "albedoTex");
@@ -141,14 +143,11 @@ public:
 	*  \brief Assigne une texture à ce GameObject à partir d'un fichier.
 	*  \param filename le chemin du fichier contenant la texture à charger.
 	*/
-	void LoadTexture(const char* filename)
+	void LoadTexture(const char* filename, float r, float m)
 	{
 		albedoTex = read_texture(0, filename);
-		glGenSamplers(1, &colorSampler);
-		glSamplerParameteri(colorSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glSamplerParameteri(colorSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		roughness = r;
+		metalness = m;
 	}
 
 	void LoadPBRTextures(const char* a, const char* r, const char* m)
@@ -156,13 +155,6 @@ public:
 		albedoTex = read_texture(0, a);
 		roughTex = read_texture(0, r);
 		metalTex = read_texture(0, m);
-
-
-		glGenSamplers(1, &roughSampler);
-		glSamplerParameteri(roughSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glSamplerParameteri(roughSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glSamplerParameteri(roughSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glSamplerParameteri(roughSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	}
 
 	/*!

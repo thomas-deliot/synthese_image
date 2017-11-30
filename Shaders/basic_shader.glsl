@@ -29,8 +29,8 @@ void main( )
 uniform vec4 color;
 
 uniform sampler2D albedoTex;
-uniform sampler2D roughTex;
-uniform sampler2D metalTex;
+uniform float roughness;
+uniform float metalness;
 
 in vec2 vtexcoord;
 in vec3 worldPos;
@@ -39,8 +39,6 @@ in vec3 worldNormal;
 void main()
 {
 	vec4 diffuseColor = color * texture(albedoTex, vtexcoord);
-	float roughness = texture(roughTex, vtexcoord).r;
-	float metalness = texture(metalTex, vtexcoord).r;
 
 	gl_FragData[0] = vec4(diffuseColor.rgb, roughness);
 	gl_FragData[1] = vec4(worldNormal.xyz, metalness);

@@ -26,6 +26,7 @@ uniform float nearZ;
 uniform float farZ;
 uniform mat4 invProj;
 uniform mat4 invView;
+const float PI = 3.14159265359f;
 
 uniform vec3 camPos;
 uniform vec4 ambientLight;
@@ -35,9 +36,6 @@ uniform float lightStrength;
 
 in vec2 vtexcoord;
 out vec4 finalColor;
-
-const float PI = 3.14159265359f;
-
 
 vec3 colorForLight(vec3 V, vec3 N, vec3 R, vec3 F, vec3 kD, float NdotV, vec3 vsLightDir, vec3 incomingColor, vec3 surfaceColor, float roughness);
 vec3 colorLinear(vec3 colorVector);

@@ -28,6 +28,7 @@ uniform mat4 invView;
 uniform float nearZ;
 uniform float farZ;
 
+const float reflectionStrength = 0.1;
 const float maxSteps = 256;
 const float binarySearchIterations = 4;
 const float maxDistance = 100.0;
@@ -37,6 +38,7 @@ const float strideZCutoff = 100.0;
 const float screenEdgeFadeStart = 0.75;
 const float eyeFadeStart = 0.5;
 const float eyeFadeEnd = 1.0;
+const float PI = 3.14159265359f;
 
 uniform vec3 camPos;
 uniform vec4 ambientLight;
@@ -45,7 +47,6 @@ uniform vec4 lightColor;
 uniform float lightStrength;
 
 in vec2 vtexcoord;
-
 out vec4 finalColor;
 
 bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter, out vec2 hitPixel, out vec3 hitPoint, out float iterations);
@@ -53,19 +54,33 @@ float ComputeBlendFactorForIntersection(float iterationCount, vec2 hitPixel, vec
 float DistanceSquared(vec2 a, vec2 b);
 float Linear01Depth(float z);
 float LinearEyeDepth(float z);
+vec3 colorForLight(vec3 V, vec3 N, vec3 R, vec3 F, vec3 kD, float NdotV, vec3 vsLightDir, vec3 incomingColor, vec3 surfaceColor, float roughness);
+vec3 colorLinear(vec3 colorVector);
+float saturate(float f);
+vec2 getSphericalCoord(vec3 normalCoord);
+float Fd90(float NoL, float roughness);
+float KDisneyTerm(float NoL, float NoV, float roughness);
+vec3 computeFresnelSchlick(float NdotV, vec3 F0);
+vec3 computeFresnelSchlickRoughness(float NdotV, vec3 F0, float roughness);
+float computeDistributionGGX(vec3 N, vec3 H, float roughness);
+float computeGeometryAttenuationGGXSmith(float NdotL, float NdotV, float roughness);
 
 
 void main()
 {
 	// Sample GBuffer information
 	vec4 temp = texture(colorBuffer, vtexcoord.xy);
-	vec4 diffuseColor = vec4(temp.xyz, 1);
-	float shininess = temp.w * 500.0;
-	vec3 worldNormal = texture(normalBuffer, vtexcoord.xy).xyz;
+	vec4 temp2 = texture(normalBuffer, vtexcoord.xy);
+	vec3 albedo = temp.rgb;
+	vec3 worldNormal = temp2.rgb;
+	vec3 vsNormal = mat3(viewMatrix) * worldNormal;
+	vec3 vsLightDir = mat3(viewMatrix) * lightDir;
+	float roughness = temp.a;
+	float metalness = temp2.a;
 	float z = texture(depthBuffer, vtexcoord).x;
 	if(z >= 0.9999f)
 	{
-		finalColor = diffuseColor;
+		finalColor = vec4(albedo.rgb, 1);
 		return;
 	}
 
@@ -74,12 +89,10 @@ void main()
 	vec4 viewSpacePosition = invProj * clipSpacePosition;
 	viewSpacePosition /= viewSpacePosition.w;
 	vec3 vsPos = viewSpacePosition.xyz;
-	vec3 vsNormal = mat3(viewMatrix) * worldNormal;
 
 	// Screen Space Reflection Test
 	vec3 vsRayDir = normalize(vsPos);
 	vec3 vsReflect = reflect(vsRayDir, vsNormal);
-	//vsReflect = vec3(0,0,1);
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
 	vec2 uv2 = vtexcoord * renderSize;
@@ -95,34 +108,26 @@ void main()
 	
 	
 	// Final Lighting computation
-	// Diffuse term (Lambert)
-	float diffTerm = max(0.0, dot(-lightDir, worldNormal));
-	float diffTermRefl = max(0.0, dot(vsReflect, worldNormal));
+	vec3 V = normalize(-vsPos);
+    vec3 N = normalize(vsNormal);
+    vec3 R = reflect(-V, N);
+    float NdotV = max(dot(N, V), 0.0001);
 
-	// Specular term (Blinn Phong)
-	float specular = 0;
-	if(diffTerm > 0)
-	{
-		vec3 worldPos = mat3(invView) * vsPos;
-		vec3 viewDir = normalize(camPos - worldPos);
-		vec3 halfDir = normalize(-lightDir + viewDir);
-		float specAngle = max(dot(halfDir, worldNormal), 0.0);
-		specular = pow(specAngle, shininess);
-	}
-	float specularRefl = 0;
-	if(diffTermRefl > 0)
-	{
-		vec3 worldPos = mat3(invView) * vsPos;
-		vec3 viewDir = normalize(camPos - worldPos);
-		vec3 halfDir = normalize(vsReflect + viewDir);
-		float specAngle = max(dot(halfDir, worldNormal), 0.0);
-		specularRefl = pow(specAngle, shininess);
-	}
+    // Fresnel (Schlick) computation (F term)
+    vec3 F0 = mix(vec3(0.04, 0.04, 0.04), albedo, metalness);
+    vec3 F = computeFresnelSchlick(NdotV, F0);
 
-	// Final color
-	finalColor = ambientLight
-		+ diffTerm * diffuseColor * (lightColor * lightStrength) + specular * (lightColor * lightStrength)
-		+ (diffTermRefl * diffuseColor * hitColor + specularRefl * hitColor) * reflBlend;
+    // Energy conservation
+    vec3 kS = F;
+    vec3 kD = vec3(1.0, 1.0, 1.0) - kS;
+	kD *= 1.0 - metalness;
+	
+	// Directional Light + Reflection light
+    vec3 color = vec3(0, 0, 0);
+	color += colorForLight(V, N, R, F, kD, NdotV, vsLightDir, lightColor.rgb * lightStrength, albedo, roughness);
+	color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb * reflectionStrength, albedo, roughness) * reflBlend;
+	
+	finalColor = vec4(color.rgb, 1);
 }
 
 
@@ -298,5 +303,92 @@ float ComputeBlendFactorForIntersection(
 	alpha *= 1.0 - clamp(distance(vsRayOrigin, hitPoint) / maxDistance, 0.0, 1.0);
 
 	return alpha;
+}
+
+vec3 colorForLight(vec3 V, vec3 N, vec3 R, vec3 F, vec3 kD, float NdotV, vec3 vsLightDir, vec3 incomingColor, vec3 surfaceColor, float roughness)
+{
+	vec3 L = normalize(vsLightDir);
+    vec3 H = normalize(L + V);
+
+    // Light source dependent BRDF term(s)
+    float NdotL = saturate(dot(N, L));
+
+    // Diffuse component computation
+    vec3 diffuse = surfaceColor / PI;
+
+    // Disney diffuse term
+    float kDisney = KDisneyTerm(NdotL, NdotV, roughness);
+
+    // Distribution (GGX) computation (D term)
+    float D = computeDistributionGGX(N, H, roughness);
+
+    // Geometry attenuation (GGX-Smith) computation (G term)
+    float G = computeGeometryAttenuationGGXSmith(NdotL, NdotV, roughness);
+
+    // Specular component computation
+    vec3 specular = (F * D * G) / (4.0f * NdotL * NdotV + 0.0001);
+
+	return (diffuse * kD + specular) * incomingColor * NdotL;
+}
+
+vec3 colorLinear(vec3 colorVector)
+{
+    vec3 linearColor = pow(colorVector.rgb, vec3(2.2f));
+    return linearColor;
+}
+
+float saturate(float f)
+{
+    return clamp(f, 0.0f, 1.0f);
+}
+
+vec2 getSphericalCoord(vec3 normalCoord)
+{
+    float phi = acos(-normalCoord.y);
+    float theta = atan(1.0f * normalCoord.x, -normalCoord.z) + PI;
+    return vec2(theta / (2.0f * PI), phi / PI);
+}
+
+float Fd90(float NoL, float roughness)
+{
+    return (2.0f * NoL * roughness) + 0.4f;
+}
+
+float KDisneyTerm(float NoL, float NoV, float roughness)
+{
+    return (1.0f + Fd90(NoL, roughness) * pow(1.0f - NoL, 5.0f)) * (1.0f + Fd90(NoV, roughness) * pow(1.0f - NoV, 5.0f));
+}
+
+vec3 computeFresnelSchlick(float NdotV, vec3 F0)
+{
+    return F0 + (1.0f - F0) * pow(1.0f - NdotV, 5.0f);
+}
+
+vec3 computeFresnelSchlickRoughness(float NdotV, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0f - roughness), F0) - F0) * pow(1.0f - NdotV, 5.0f);
+}
+
+float computeDistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
+
+    float NdotH = saturate(dot(N, H));
+    float NdotH2 = NdotH * NdotH;
+
+    return (alpha2) / (PI * (NdotH2 * (alpha2 - 1.0f) + 1.0f) * (NdotH2 * (alpha2 - 1.0f) + 1.0f));
+}
+
+float computeGeometryAttenuationGGXSmith(float NdotL, float NdotV, float roughness)
+{
+    float NdotL2 = NdotL * NdotL;
+    float NdotV2 = NdotV * NdotV;
+    float kRough2 = roughness * roughness + 0.0001f;
+
+    float ggxL = (2.0f * NdotL) / (NdotL + sqrt(NdotL2 + kRough2 * (1.0f - NdotL2)));
+    float ggxV = (2.0f * NdotV) / (NdotV + sqrt(NdotV2 + kRough2 * (1.0f - NdotV2)));
+
+    return ggxL * ggxV;
 }
 #endif
