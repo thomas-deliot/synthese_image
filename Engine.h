@@ -159,8 +159,8 @@ public:
 		rootObject->AddChild(guy);
 		guy->SetPosition(10.0f, 0.0f, 0.0f);
 		renderer->SetColor(Color(1.0, 1.0, 1.0, 1.0));
-		RotateObjectMouse* rotater = new RotateObjectMouse();*/
-		//guy->AddComponent(rotater);
+		RotateObjectMouse* rotater = new RotateObjectMouse();
+		guy->AddComponent(rotater);*/
 
 		GameObject* guy4 = new GameObject();
 		guy4->SetName("guy4");
@@ -180,7 +180,7 @@ public:
 		cube1->AddComponent(renderer2);
 		renderer2->LoadMesh("data/cube.obj");
 		renderer2->LoadShader("m2tp/Shaders/pbr_shader.glsl");
-		renderer2->LoadPBRTextures("m2tp/Textures/rustediron_albedo.jpg", "m2tp/Textures/rustediron_roughness.jpg", "m2tp/Textures/rustediron_metalness.jpg");
+		renderer2->LoadPBRTextures("m2tp/Textures/woodfloor_albedo.jpg", "m2tp/Textures/woodfloor_roughness.jpg", "m2tp/Textures/woodfloor_metalness.jpg");
 		gameObjects.push_back(cube1);
 		rootObject->AddChild(cube1);
 		cube1->SetPosition(0.0f, -10.0f, 0.0f);
