@@ -1,6 +1,7 @@
 #include <cfloat>
 #include <cmath>
 #include <time.h>
+#include <algorithm>
 
 #include "vec.h"
 #include "color.h"
@@ -202,7 +203,7 @@ bool intersect(const Ray& ray, Hit& hit)
 Color hitColor(Mesh& mesh, Hit& hit)
 {
 	Material mat = mesh.triangle_material(hit.object_id);
-	return mat.diffuse;
+	return mat.diffuse + mat.emission;
 }
 
 
@@ -228,12 +229,16 @@ int main(int argc, char **argv)
 
 	// placer une source de lumiere
 	Point light = camera.position();
+	//Point light = Point(0.0f, 5.0f, 0.0f);
+	float lightRadius = 6.0f;
 
 	// creer l'image pour stocker le resultat
-	Image image(256, 256);
+	Image image(512, 512);
 
-	Transform meshTRS = Translation(0, -1.0f, 0.7f) * Rotation(Vector(1, 0, 0), 0.0f) * Scale(2.0f, 1.0f, 1.0f);
+	Transform meshRotation = Rotation(Vector(0, 1, 0), 8.0f);
+	Transform meshTRS =  Scale(1.6f, 1.0f, 1.0f) * meshRotation * Translation(0, -1.0f, 0.75f);
 	Transform worldToMesh = meshTRS.inverse();
+	Transform worldToMeshRotation = meshRotation.inverse();
 
 	Transform inverseProj = camera.projection(1024.0f, 640.0f, 60.0f).inverse();
 	Transform inverseView = camera.view().inverse();
@@ -266,8 +271,16 @@ int main(int argc, char **argv)
 			if (intersect(ray, hit))
 			{
 				// calculer l'eclairage direct pour chaque source
-				Color direct = hitColor(mesh, hit);
+				Vector lightDir = normalize(hit.p - worldToMesh(light));
+				float diffuseTerm = std::max(dot(-lightDir, hit.n), 0.0f);
+
+				Color direct = hitColor(mesh, hit) * diffuseTerm;
 				image(x, y) = Color(direct, 1);
+
+				/*normal.x = normal.x < 0.0f ? 0.0f : normal.x;
+				normal.y = normal.y < 0.0f ? 0.0f : normal.y;
+				normal.z = normal.z < 0.0f ? 0.0f : normal.z;
+				image(x, y) = Color(normal.x, normal.y, normal.z, 1);*/
 			}
 		}
 	}
