@@ -28,7 +28,7 @@ uniform mat4 invView;
 uniform float nearZ;
 uniform float farZ;
 
-const float reflectionStrength = 0.1;
+const float reflectionStrength = 0.0015;
 const float maxSteps = 256;
 const float binarySearchIterations = 4;
 const float maxDistance = 100.0;
@@ -125,7 +125,32 @@ void main()
 	// Directional Light + Reflection light
 	vec3 color = vec3(0, 0, 0);
 	color += colorForLight(V, N, R, F, kD, NdotV, vsLightDir, lightColor.rgb * lightStrength, albedo, roughness);
-	//color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb * reflectionStrength, albedo, roughness) * reflBlend;
+	color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb * reflectionStrength, albedo, roughness) * reflBlend;
+	//color += colorForLight(V, N, R, F, kD, NdotV, vsNormal, vec3(1, 1, 1), albedo, roughness);
+	//color += vec3(1, 1, 1) * albedo * 0.15;
+
+	/*vec3 irradianceAccumulation = vec3(0.0f);
+	vec3 upDir = vec3(0.0f, 1.0f, 0.0f);
+	vec3 rightDir = cross(upDir, N);
+	upDir = cross(N, rightDir);
+	float sampleOffset = 3.14159265359f / 64.0f;
+	float sampleCount = 0.0f;
+	for(float anglePhi = 0.0f; anglePhi < 2.0f * 3.14159265359f; anglePhi += sampleOffset)
+	{
+		for(float angleTheta = 0.0f; angleTheta < 0.5f * 3.14159265359f; angleTheta += sampleOffset)
+		{
+			vec3 sampleTangent = vec3(sin(angleTheta) * cos(anglePhi),  sin(angleTheta) * sin(anglePhi), cos(angleTheta));
+			vec3 sampleVector = sampleTangent.x * rightDir + sampleTangent.y * upDir + sampleTangent.z * N;
+
+			irradianceAccumulation += vec3(1, 1, 1).rgb * 0.2 * cos(angleTheta) * sin(angleTheta);
+			sampleCount++;
+
+			//color += colorForLight(V, N, R, F, kD, NdotV, sampleVector, vec3(1, 1, 1) * reflectionStrength, albedo, roughness);
+		}
+	}
+	irradianceAccumulation = irradianceAccumulation * (1.0f / float(sampleCount)) * 3.14159265359f;
+	//color += irradianceAccumulation;
+	color += vec3(1, 1, 1).rgb * 0.2;*/
 	
 	finalColor = vec4(color.rgb, 1);
 }
