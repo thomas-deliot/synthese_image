@@ -242,12 +242,13 @@ public:
 		// Set up skybox
 		skybox = new Skybox();
 		lightObject->AddComponent(skybox);
-		skybox->CreateCubeMap("m2tp/Scene/Skybox1/posz.jpg",
-			"m2tp/Scene/Skybox1/negz.jpg",
-			"m2tp/Scene/Skybox1/posy.jpg",
-			"m2tp/Scene/Skybox1/negy.jpg",
-			"m2tp/Scene/Skybox1/posx.jpg",
-			"m2tp/Scene/Skybox1/negx.jpg");
+		skybox->CreateCubeMap(
+			"m2tp/Scene/Skybox1/posz.tga",
+			"m2tp/Scene/Skybox1/negz.tga",
+			"m2tp/Scene/Skybox1/posy.tga",
+			"m2tp/Scene/Skybox1/negy.tga",
+			"m2tp/Scene/Skybox1/posx.tga",
+			"m2tp/Scene/Skybox1/negx.tga");
 	}
 
 	void DisplayGUI()

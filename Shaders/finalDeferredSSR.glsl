@@ -109,23 +109,23 @@ void main()
 	
 	// Final Lighting computation
 	vec3 V = normalize(-vsPos);
-    vec3 N = normalize(vsNormal);
-    vec3 R = reflect(-V, N);
-    float NdotV = max(dot(N, V), 0.0001);
+	vec3 N = normalize(vsNormal);
+	vec3 R = reflect(-V, N);
+	float NdotV = max(dot(N, V), 0.0001);
 
-    // Fresnel (Schlick) computation (F term)
-    vec3 F0 = mix(vec3(0.04, 0.04, 0.04), albedo, metalness);
-    vec3 F = computeFresnelSchlick(NdotV, F0);
+	// Fresnel (Schlick) computation (F term)
+	vec3 F0 = mix(vec3(0.04, 0.04, 0.04), albedo, metalness);
+	vec3 F = computeFresnelSchlick(NdotV, F0);
 
-    // Energy conservation
-    vec3 kS = F;
-    vec3 kD = vec3(1.0, 1.0, 1.0) - kS;
+	// Energy conservation
+	vec3 kS = F;
+	vec3 kD = vec3(1.0, 1.0, 1.0) - kS;
 	kD *= 1.0 - metalness;
 	
 	// Directional Light + Reflection light
-    vec3 color = vec3(0, 0, 0);
+	vec3 color = vec3(0, 0, 0);
 	color += colorForLight(V, N, R, F, kD, NdotV, vsLightDir, lightColor.rgb * lightStrength, albedo, roughness);
-	color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb * reflectionStrength, albedo, roughness) * reflBlend;
+	//color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb * reflectionStrength, albedo, roughness) * reflBlend;
 	
 	finalColor = vec4(color.rgb, 1);
 }

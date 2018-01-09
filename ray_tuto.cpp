@@ -207,7 +207,18 @@ Color hitColor(Mesh& mesh, Hit& hit)
 }
 
 
-int main(int argc, char **argv)
+// b1, b2, n sont 3 axes orthonormes.
+void branchlessONB(const Vector &n, Vector &b1, Vector &b2)
+{
+	float sign = std::copysign(1.0f, n.z);
+	const float a = -1.0f / (sign + n.z);
+	const float b = n.x * n.y * a;
+	b1 = Vector(1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x);
+	b2 = Vector(b, sign + n.y * n.y * a, -n.y);
+}
+
+
+/*int main(int argc, char **argv)
 {
 	// init generateur aleatoire
 	srand(time(NULL));
@@ -277,10 +288,10 @@ int main(int argc, char **argv)
 				Color direct = hitColor(mesh, hit) * diffuseTerm;
 				image(x, y) = Color(direct, 1);
 
-				/*normal.x = normal.x < 0.0f ? 0.0f : normal.x;
-				normal.y = normal.y < 0.0f ? 0.0f : normal.y;
-				normal.z = normal.z < 0.0f ? 0.0f : normal.z;
-				image(x, y) = Color(normal.x, normal.y, normal.z, 1);*/
+				//normal.x = normal.x < 0.0f ? 0.0f : normal.x;
+				//normal.y = normal.y < 0.0f ? 0.0f : normal.y;
+				//normal.z = normal.z < 0.0f ? 0.0f : normal.z;
+				//image(x, y) = Color(normal.x, normal.y, normal.z, 1);
 			}
 		}
 	}
@@ -288,4 +299,4 @@ int main(int argc, char **argv)
 	write_image(image, "m2tp/TutoRayTrace/render.png");
 	write_image_hdr(image, "m2tp/TutoRayTrace/render.hdr");
 	return 0;
-}
+}*/
