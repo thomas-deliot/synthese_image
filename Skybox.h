@@ -108,4 +108,6 @@ public:
 		const char* right);
 
 	bool load_cube_map_side(GLuint texture, GLenum side_target, const char* file_name);
+
+	GLuint GetTexCube() { return texCube; }
 };

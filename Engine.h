@@ -108,7 +108,7 @@ public:
 		glUseProgram(0);
 
 		// Final deferred rendering pass (lighting)
-		mainCamera->FinishDeferredRendering(mainLight, ambientLight, true);
+		mainCamera->FinishDeferredRendering(mainLight, ambientLight, skybox, true);
 
 		// Draw post effects
 		//mainCamera->DrawPostEffects();
@@ -171,8 +171,8 @@ public:
 		renderer5->LoadMesh("data/shaderball.obj");
 		renderer5->LoadShader("m2tp/Shaders/pbr_shader.glsl");
 		//renderer5->LoadPBRTextures("m2tp/Textures/rustediron_basecolor.png", "m2tp/Textures/rustediron_roughness.png", "m2tp/Textures/rustediron_metallic.png");
-		renderer5->LoadPBRTextures("m2tp/Textures/mahogfloor_basecolor.png", "m2tp/Textures/mahogfloor_roughness.png", "m2tp/Textures/black.jpg");
-		//renderer5->LoadPBRTextures("m2tp/Textures/gold-scuffed_basecolor.png", "m2tp/Textures/gold-scuffed_roughness.png", "m2tp/Textures/gold-scuffed_metallic.png");
+		//renderer5->LoadPBRTextures("m2tp/Textures/mahogfloor_basecolor.png", "m2tp/Textures/mahogfloor_roughness.png", "m2tp/Textures/black.jpg");
+		renderer5->LoadPBRTextures("m2tp/Textures/gold-scuffed_basecolor.png", "m2tp/Textures/gold-scuffed_roughness.png", "m2tp/Textures/gold-scuffed_metallic.png");
 		gameObjects.push_back(guy4);
 		rootObject->AddChild(guy4);
 		guy4->SetPosition(0.0f, -2.0f, 0.0f);

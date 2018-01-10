@@ -10,6 +10,8 @@
 #include "uniforms.h"
 #include <vector>
 
+class Skybox;
+
 using namespace std;
 
 class Camera : public Component
@@ -22,8 +24,8 @@ private:
 	float farZ = 2000.0f;
 	float fov = 60.0f;
 	GLuint frameBuffer;
-	GLuint colorBuffer;
-	GLuint normalBuffer;
+	GLuint colorBuffer; // RGB : albedo.rgb / A : roughness
+	GLuint normalBuffer; // RGB : normal.xyz / A : metallic
 	GLuint depthBuffer;
 	GLuint colorSampler;
 	GLuint normalSampler;
@@ -34,8 +36,9 @@ private:
 	GLuint shaderSSAO;
 	GLuint frameBuffer2;
 	GLuint colorBuffer2;
+	GLuint skyboxSampler;
 
-	// Temporal reprojection
+	// Previous frame for temporal reprojection
 	Transform prevProjectionMatrix;
 	Transform prevViewMatrix;
 	GLuint prevColorBuffer;
@@ -104,9 +107,6 @@ public:
 		// Normal Buffer setup
 		glGenTextures(1, &normalBuffer);
 		glBindTexture(GL_TEXTURE_2D, normalBuffer);
-		/*glTexImage2D(GL_TEXTURE_2D, 0,
-			GL_RGBA, frameWidth, frameHeight, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);*/
 		glTexImage2D(GL_TEXTURE_2D, 0,
 			GL_RGBA16F, frameWidth, frameHeight, 0,
 			GL_RGBA, GL_HALF_FLOAT, nullptr);
@@ -153,17 +153,24 @@ public:
 		GLenum buffers2[] = { GL_COLOR_ATTACHMENT0 };
 		glDrawBuffers(1, buffers2);
 
+		// Skybox sampler
+		glGenSamplers(1, &skyboxSampler);
+		glSamplerParameteri(skyboxSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glSamplerParameteri(skyboxSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glSamplerParameteri(skyboxSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glSamplerParameteri(skyboxSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glSamplerParameteri(skyboxSampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 		// Cleanup
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	}
 
-	void FinishDeferredRendering(DirectionalLight* light, Color ambientLight, bool reflections)
+	void FinishDeferredRendering(DirectionalLight* light, Color ambientLight, Skybox* skybox, bool reflections)
 	{
 		BeginPostEffect();
 		if(reflections == true)
-			FinalDeferredPassSSR(light, ambientLight);
+			FinalDeferredPassSSR(light, ambientLight, skybox);
 		else
 			FinalDeferredPass(light, ambientLight);
 		EndPostEffect();
@@ -190,7 +197,7 @@ public:
 
 	void FinalDeferredPass(DirectionalLight* light, Color ambientLight);
 
-	void FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight);
+	void FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight, Skybox* skybox);
 
 	void SSAO();
 

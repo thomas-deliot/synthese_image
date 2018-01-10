@@ -21,6 +21,8 @@ uniform sampler2D colorBuffer;
 uniform sampler2D normalBuffer;
 uniform sampler2D depthBuffer;
 uniform sampler2D prevColorBuffer;
+uniform samplerCube skybox;
+
 uniform vec2 renderSize;
 uniform mat4 viewMatrix;
 uniform mat4 projToPixel;
@@ -110,20 +112,16 @@ void main()
 	float iterations = 0;
 	bool hit = FindSSRHit(vsPos, vsReflect, jitter, hitPixel, hitPoint, iterations);
 
-	// Calculate blend factor
-	float reflBlend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect);
-	if(hitPixel.x > 1.0f || hitPixel.x < 0.0f || hitPixel.y > 1.0f || hitPixel.y < 0.0f)
-		reflBlend = 0;	
-	
 	// Sample reflection in previous frame with temporal reprojection
 	vec4 prev = invView * vec4(hitPoint.xyz, 1);
 	prev = prevView * prev;
 	prev = prevProj * prev;
 	prev.xyz /= prev.w;
-	vec4 hitColor = texture(prevColorBuffer, prev.xy * 0.5 + 0.5);
-	//vec4 hitColor = texture(prevColorBuffer, hitPixel.xy);
 	
-	
+	// Blend between reprojected SSR sample and skybox
+	float reflBlend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect);
+	vec4 hitColor = mix(texture(skybox, worldNormal), texture(prevColorBuffer, prev.xy * 0.5 + 0.5), reflBlend);
+		
 	// Final Lighting computation
 	vec3 V = normalize(-vsPos);
 	vec3 N = normalize(vsNormal);
@@ -143,7 +141,7 @@ void main()
 	vec3 color = vec3(0, 0, 0);
 	color += colorForLight(V, N, R, F, kD, NdotV, vsLightDir, lightColor.rgb * lightStrength, albedo, roughness);
 	color += colorForLight(V, N, R, F, kD, NdotV, -vsLightDir, lightColor.rgb * lightStrength * 0.2, albedo, roughness);
-	color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb * reflectionStrength, albedo, roughness) * reflBlend;
+	color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb * reflectionStrength, albedo, roughness);
 	//color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, albedo.rgb * 0.0003, albedo, roughness);
 	
 	color.rgb *= ComputeSSAOAtten(vsPos, vsNormal);

@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include "GameObject.h"
+#include "Skybox.h"
 #include <vector>
 
 Transform Camera::GetViewMatrix()
@@ -99,7 +100,7 @@ void Camera::FinalDeferredPass(DirectionalLight* light, Color ambientLight)
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void Camera::FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight)
+void Camera::FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight, Skybox* skybox)
 {
 	glUseProgram(finalDeferredSSR);
 	int id = glGetUniformLocation(finalDeferredSSR, "colorBuffer");
@@ -136,6 +137,15 @@ void Camera::FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight)
 		glActiveTexture(GL_TEXTURE0 + unit);
 		glBindTexture(GL_TEXTURE_2D, prevColorBuffer);
 		glBindSampler(unit, prevColorSampler);
+		glUniform1i(id, unit);
+	}
+	id = glGetUniformLocation(finalDeferredSSR, "skybox");
+	if (id >= 0 && skybox->GetTexCube() >= 0)
+	{
+		int unit = 4;
+		glActiveTexture(GL_TEXTURE0 + unit);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetTexCube());
+		glBindSampler(unit, skyboxSampler);
 		glUniform1i(id, unit);
 	}
 
