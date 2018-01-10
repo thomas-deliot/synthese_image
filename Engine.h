@@ -111,7 +111,7 @@ public:
 		mainCamera->FinishDeferredRendering(mainLight, ambientLight, true);
 
 		// Draw post effects
-		mainCamera->DrawPostEffects();
+		//mainCamera->DrawPostEffects();
 
 		// Blit to screen
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, mainCamera->GetFrameBuffer());

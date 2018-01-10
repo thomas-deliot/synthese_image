@@ -50,14 +50,18 @@ void main()
 	vec3 vsNormal = mat3(viewMatrix) * worldNormal;
 	float z = texture(depthBuffer, vtexcoord).x;
 	if(z >= 0.9999f)
-		return temp;
+	{
+		finalColor = temp;
+		return;
+	}
 
 	vec4 clipSpacePosition = vec4(vtexcoord.xy * 2.0 - 1.0, z * 2.0 - 1.0, 1);
 	vec4 viewSpacePosition = invProj * clipSpacePosition;
 	viewSpacePosition /= viewSpacePosition.w;
 	vec3 vsPos = viewSpacePosition.xyz;
 	
-	finalColor = vec4(temp.rgb * ComputeSSAOAtten(vsPos, vsNormal), temp.a);
+	//finalColor = vec4(temp.rgb * ComputeSSAOAtten(vsPos, vsNormal), temp.a);
+	finalColor = vec4(worldNormal.xyz, 1);
 }
 
 

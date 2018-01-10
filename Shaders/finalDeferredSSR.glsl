@@ -172,7 +172,8 @@ float ComputeSSAOAtten(vec3 vsPos, vec3 vsNormal)
 			vec3 sampleTangent = vec3(sin(angleTheta) * cos(anglePhi),  sin(angleTheta) * sin(anglePhi), cos(angleTheta));
 			vec3 sampleVector = sampleTangent.x * rightDir + sampleTangent.y * upDir + sampleTangent.z * vsNormal;
 			
-			vec2 seed = vec2(sampleVector.x + sampleTangent.z + vsNormal.y, sampleVector.z + sampleTangent.y + vsNormal.x);
+			vec2 seed = vec2(vsPos.y * vsPos.x + sampleVector.x + sampleTangent.z + vsNormal.y,
+				vsPos.z * vsPos.y + sampleVector.z + sampleTangent.y + vsNormal.x);
 			vec3 samplePos = vsPos + sampleVector * GetRandomNumberBetween(seed, 1.0, ssaoDist);
 			vec4 temp = projToPixel * vec4(samplePos, 1);
 			temp.xyz /= temp.w;

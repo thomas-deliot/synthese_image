@@ -41,7 +41,7 @@ public:
 	{
 		finalDeferred = read_program("m2tp/Shaders/finalDeferred.glsl");
 		finalDeferredSSR = read_program("m2tp/Shaders/finalDeferredSSR.glsl");
-		shaderSSAO = read_program("m2tp/Shaders/SSAO.glsl");
+		//shaderSSAO = read_program("m2tp/Shaders/SSAO.glsl");
 		SetParameters(frameWidth, frameHeight, fov, nearZ, farZ);
 	}
 
