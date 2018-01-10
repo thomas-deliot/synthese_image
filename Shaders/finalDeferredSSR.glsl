@@ -28,7 +28,8 @@ uniform mat4 invView;
 uniform float nearZ;
 uniform float farZ;
 
-const float reflectionStrength = 0.0015;
+const float PI = 3.14159265359f;
+const float reflectionStrength = 0.0013;
 const float maxSteps = 256;
 const float binarySearchIterations = 4;
 const float maxDistance = 100.0;
@@ -38,7 +39,10 @@ const float strideZCutoff = 100.0;
 const float screenEdgeFadeStart = 0.75;
 const float eyeFadeStart = 0.5;
 const float eyeFadeEnd = 1.0;
-const float PI = 3.14159265359f;
+
+const float ssaoStrength = 4.0; // 0.0 is no ssao, higher is stronger
+const float ssaoDist = 3.0;
+const float ssaoPiDivider = 10.0; // fibonacci directions step = PI / ssaoPiDivider, higher is more samples
 
 uniform vec3 camPos;
 uniform vec4 ambientLight;
@@ -49,6 +53,9 @@ uniform float lightStrength;
 in vec2 vtexcoord;
 out vec4 finalColor;
 
+float rand(vec2 co);
+float GetRandomNumberBetween(vec2 co, float minimum, float maximum);
+float ComputeSSAOAtten(vec3 vsPos, vec3 vsNormal);
 bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter, out vec2 hitPixel, out vec3 hitPoint, out float iterations);
 float ComputeBlendFactorForIntersection(float iterationCount, vec2 hitPixel, vec3 hitPoint, vec3 vsRayOrigin, vec3 vsRayDirection);
 float DistanceSquared(vec2 a, vec2 b);
@@ -102,7 +109,7 @@ void main()
 
 	// Calculate blend factor
 	float reflBlend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect);
-	if(hit == false || hitPixel.x > 1.0f || hitPixel.x < 0.0f || hitPixel.y > 1.0f || hitPixel.y < 0.0f)
+	if(hitPixel.x > 1.0f || hitPixel.x < 0.0f || hitPixel.y > 1.0f || hitPixel.y < 0.0f)
 		reflBlend = 0;	
 	vec4 hitColor = texture(colorBuffer, hitPixel.xy);
 	
@@ -125,32 +132,11 @@ void main()
 	// Directional Light + Reflection light
 	vec3 color = vec3(0, 0, 0);
 	color += colorForLight(V, N, R, F, kD, NdotV, vsLightDir, lightColor.rgb * lightStrength, albedo, roughness);
+	color += colorForLight(V, N, R, F, kD, NdotV, -vsLightDir, lightColor.rgb * lightStrength * 0.2, albedo, roughness);
 	color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb * reflectionStrength, albedo, roughness) * reflBlend;
-	//color += colorForLight(V, N, R, F, kD, NdotV, vsNormal, vec3(1, 1, 1), albedo, roughness);
-	//color += vec3(1, 1, 1) * albedo * 0.15;
-
-	/*vec3 irradianceAccumulation = vec3(0.0f);
-	vec3 upDir = vec3(0.0f, 1.0f, 0.0f);
-	vec3 rightDir = cross(upDir, N);
-	upDir = cross(N, rightDir);
-	float sampleOffset = 3.14159265359f / 64.0f;
-	float sampleCount = 0.0f;
-	for(float anglePhi = 0.0f; anglePhi < 2.0f * 3.14159265359f; anglePhi += sampleOffset)
-	{
-		for(float angleTheta = 0.0f; angleTheta < 0.5f * 3.14159265359f; angleTheta += sampleOffset)
-		{
-			vec3 sampleTangent = vec3(sin(angleTheta) * cos(anglePhi),  sin(angleTheta) * sin(anglePhi), cos(angleTheta));
-			vec3 sampleVector = sampleTangent.x * rightDir + sampleTangent.y * upDir + sampleTangent.z * N;
-
-			irradianceAccumulation += vec3(1, 1, 1).rgb * 0.2 * cos(angleTheta) * sin(angleTheta);
-			sampleCount++;
-
-			//color += colorForLight(V, N, R, F, kD, NdotV, sampleVector, vec3(1, 1, 1) * reflectionStrength, albedo, roughness);
-		}
-	}
-	irradianceAccumulation = irradianceAccumulation * (1.0f / float(sampleCount)) * 3.14159265359f;
-	//color += irradianceAccumulation;
-	color += vec3(1, 1, 1).rgb * 0.2;*/
+	//color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, albedo.rgb * 0.0003, albedo, roughness);
+	
+	color.rgb *= ComputeSSAOAtten(vsPos, vsNormal);
 	
 	finalColor = vec4(color.rgb, 1);
 }
@@ -160,6 +146,57 @@ void main()
 
 
 // ---------- Functions ------------
+float rand(vec2 co)
+{
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+float GetRandomNumberBetween(vec2 co, float minimum, float maximum)
+{
+	float f0 = rand(co);
+	return minimum + f0 * (maximum - minimum);
+}
+
+float ComputeSSAOAtten(vec3 vsPos, vec3 vsNormal)
+{
+	vec3 upDir = vec3(0.0f, 1.0f, 0.0f);
+	vec3 rightDir = cross(upDir, vsNormal);
+	upDir = cross(vsNormal, rightDir);
+	float sampleOffset = PI / ssaoPiDivider;
+	float hitCount = 0.0f;
+	float sampleCount = 0.0f;
+	for(float anglePhi = 0.0f; anglePhi < 2.0f * PI; anglePhi += sampleOffset)
+	{
+		for(float angleTheta = 0.01f; angleTheta < 0.5f * PI; angleTheta += sampleOffset)
+		{
+			vec3 sampleTangent = vec3(sin(angleTheta) * cos(anglePhi),  sin(angleTheta) * sin(anglePhi), cos(angleTheta));
+			vec3 sampleVector = sampleTangent.x * rightDir + sampleTangent.y * upDir + sampleTangent.z * vsNormal;
+			
+			vec2 seed = vec2(sampleVector.x + sampleTangent.z + vsNormal.y, sampleVector.z + sampleTangent.y + vsNormal.x);
+			vec3 samplePos = vsPos + sampleVector * GetRandomNumberBetween(seed, 1.0, ssaoDist);
+			vec4 temp = projToPixel * vec4(samplePos, 1);
+			temp.xyz /= temp.w;
+			
+			vec2 sampleUV = temp.xy / renderSize;
+			if(sampleUV.x > 1.0f || sampleUV.x < 0.0f || sampleUV.y > 1.0f || sampleUV.y < 0.0f)
+				continue;
+			
+			float tempZ = temp.z * 0.5 + 0.5;
+			float camZ = texture(depthBuffer, sampleUV).x;
+			temp = invProj * vec4(sampleUV.xy * 2.0 - 1.0, camZ * 2.0 - 1.0, 1);
+			temp.xyz /= temp.w;
+			vec3 camPos = temp.xyz;
+			
+			if(tempZ > camZ && length(camPos - vsPos) < ssaoDist * 2.0)
+				hitCount++;
+			sampleCount++;
+		}
+	}
+	
+	float atten = hitCount / sampleCount;
+	return clamp(pow(1.0 - atten, ssaoStrength), 0, 1);
+}
+
 float DistanceSquared(vec2 a, vec2 b) 
 { 
 	a -= b; 
@@ -325,7 +362,7 @@ float ComputeBlendFactorForIntersection(
 	alpha *= 1.0 - ((eyeDirection - eyeFadeStart) / (eyeFadeEnd - eyeFadeStart));
 
 	// Fade ray hits based on distance from ray origin
-	alpha *= 1.0 - clamp(distance(vsRayOrigin, hitPoint) / maxDistance, 0.0, 1.0);
+	//alpha *= 1.0 - clamp(distance(vsRayOrigin, hitPoint) / maxDistance, 0.0, 1.0);
 
 	return alpha;
 }

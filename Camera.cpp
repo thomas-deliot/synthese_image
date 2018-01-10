@@ -156,3 +156,53 @@ void Camera::FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight)
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
+
+void Camera::SSAO()
+{
+	glUseProgram(shaderSSAO);
+	int id = glGetUniformLocation(shaderSSAO, "colorBuffer");
+	if (id >= 0 && colorBuffer >= 0)
+	{
+		int unit = 0;
+		glActiveTexture(GL_TEXTURE0 + unit);
+		glBindTexture(GL_TEXTURE_2D, colorBuffer);
+		glBindSampler(unit, colorSampler);
+		glUniform1i(id, unit);
+	}
+	id = glGetUniformLocation(shaderSSAO, "normalBuffer");
+	if (id >= 0 && normalBuffer >= 0)
+	{
+		int unit = 1;
+		glActiveTexture(GL_TEXTURE0 + unit);
+		glBindTexture(GL_TEXTURE_2D, normalBuffer);
+		glBindSampler(unit, normalSampler);
+		glUniform1i(id, unit);
+	}
+	id = glGetUniformLocation(shaderSSAO, "depthBuffer");
+	if (id >= 0 && depthBuffer >= 0)
+	{
+		int unit = 2;
+		glActiveTexture(GL_TEXTURE0 + unit);
+		glBindTexture(GL_TEXTURE_2D, depthBuffer);
+		glBindSampler(unit, colorSampler);
+		glUniform1i(id, unit);
+	}
+
+	Transform trs = Translation(0.5f, 0.5f, 0.0f);
+	trs = trs * Scale(0.5f, 0.5f, 1.0f);
+	Transform screenScale = Scale(frameWidth, frameHeight, 1.0f);
+	Transform projToPixel = screenScale * trs * projectionMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(shaderSSAO, "projToPixel"), 1, GL_TRUE, projToPixel.buffer());
+	Transform invP = projectionMatrix.inverse();
+	glUniformMatrix4fv(glGetUniformLocation(shaderSSAO, "invProj"), 1, GL_TRUE, invP.buffer());
+	glUniformMatrix4fv(glGetUniformLocation(shaderSSAO, "viewMatrix"), 1, GL_TRUE, GetViewMatrix().buffer());
+	glUniform1f(glGetUniformLocation(shaderSSAO, "nearZ"), nearZ);
+	glUniform1f(glGetUniformLocation(shaderSSAO, "farZ"), farZ);
+	vec2 screenSize = vec2(frameWidth, frameHeight);
+	glUniform2fv(glGetUniformLocation(shaderSSAO, "renderSize"), 1, &(screenSize.x));
+
+	Transform invV = GetViewMatrix().inverse();
+	glUniformMatrix4fv(glGetUniformLocation(shaderSSAO, "invView"), 1, GL_TRUE, invV.buffer());
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}

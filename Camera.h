@@ -32,6 +32,7 @@ private:
 	// Post effect
 	GLuint finalDeferred;
 	GLuint finalDeferredSSR;
+	GLuint shaderSSAO;
 	GLuint frameBuffer2;
 	GLuint colorBuffer2;
 
@@ -40,6 +41,7 @@ public:
 	{
 		finalDeferred = read_program("m2tp/Shaders/finalDeferred.glsl");
 		finalDeferredSSR = read_program("m2tp/Shaders/finalDeferredSSR.glsl");
+		shaderSSAO = read_program("m2tp/Shaders/SSAO.glsl");
 		SetParameters(frameWidth, frameHeight, fov, nearZ, farZ);
 	}
 
@@ -171,13 +173,15 @@ public:
 
 	void FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight);
 
+	void SSAO();
+
 	void DrawPostEffects()
 	{
 		glDisable(GL_DEPTH_TEST);
 
-		/*BeginPostEffect();
-		FinalDeferredPassSSR();
-		EndPostEffect();*/
+		BeginPostEffect();
+		SSAO();
+		EndPostEffect();
 
 		// Reset before ending
 		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer, 0);

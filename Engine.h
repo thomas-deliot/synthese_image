@@ -111,7 +111,7 @@ public:
 		mainCamera->FinishDeferredRendering(mainLight, ambientLight, true);
 
 		// Draw post effects
-		//mainCamera->DrawPostEffects();
+		mainCamera->DrawPostEffects();
 
 		// Blit to screen
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, mainCamera->GetFrameBuffer());
@@ -168,7 +168,9 @@ public:
 		guy4->AddComponent(renderer5);
 		renderer5->LoadMesh("data/shaderball.obj");
 		renderer5->LoadShader("m2tp/Shaders/pbr_shader.glsl");
-		renderer5->LoadPBRTextures("m2tp/Textures/gold-scuffed_basecolor.png", "m2tp/Textures/gold-scuffed_roughness.png", "m2tp/Textures/gold-scuffed_metallic.png");
+		//renderer5->LoadPBRTextures("m2tp/Textures/rustediron_basecolor.png", "m2tp/Textures/rustediron_roughness.png", "m2tp/Textures/rustediron_metallic.png");
+		renderer5->LoadPBRTextures("m2tp/Textures/mahogfloor_basecolor.png", "m2tp/Textures/mahogfloor_roughness.png", "m2tp/Textures/black.jpg");
+		//renderer5->LoadPBRTextures("m2tp/Textures/gold-scuffed_basecolor.png", "m2tp/Textures/gold-scuffed_roughness.png", "m2tp/Textures/gold-scuffed_metallic.png");
 		gameObjects.push_back(guy4);
 		rootObject->AddChild(guy4);
 		guy4->SetPosition(0.0f, -2.0f, 0.0f);
@@ -180,7 +182,9 @@ public:
 		cube1->AddComponent(renderer2);
 		renderer2->LoadMesh("data/cube.obj");
 		renderer2->LoadShader("m2tp/Shaders/pbr_shader.glsl");
-		renderer2->LoadPBRTextures("m2tp/Textures/oakfloor_basecolor.png", "m2tp/Textures/oakfloor_roughness.png", "m2tp/Textures/black.jpg");
+		renderer2->LoadPBRTextures("m2tp/Textures/aluminium_basecolor.png", "m2tp/Textures/aluminium_roughness.png", "m2tp/Textures/aluminium_metallic.png");
+		//renderer2->LoadPBRTextures("m2tp/Textures/rustediron_basecolor.png", "m2tp/Textures/rustediron_roughness.png", "m2tp/Textures/rustediron_metallic.jpg");
+		//renderer2->LoadPBRTextures("m2tp/Textures/oakfloor_basecolor.png", "m2tp/Textures/oakfloor_roughness.png", "m2tp/Textures/black.jpg");
 		gameObjects.push_back(cube1);
 		rootObject->AddChild(cube1);
 		cube1->SetPosition(0.0f, -10.0f, 0.0f);
@@ -192,8 +196,11 @@ public:
 		MeshRenderer* renderer4 = new MeshRenderer();
 		cube3->AddComponent(renderer4);
 		renderer4->LoadMesh("data/cube.obj");
-		renderer4->LoadShader("m2tp/Shaders/pbr_shader.glsl");
-		renderer4->LoadPBRTextures("m2tp/Textures/blocksrough_basecolor.png", "m2tp/Textures/blocksrough_roughness.png", "m2tp/Textures/blocksrough_metallic.png");
+		renderer4->LoadShader("m2tp/Shaders/basic_shader.glsl");
+		renderer4->LoadTexture("m2tp/Textures/colors.jpg", 1.0f, 0.0f);
+		//renderer4->LoadShader("m2tp/Shaders/pbr_shader.glsl");
+		//renderer4->LoadPBRTextures("m2tp/Textures/blocksrough_basecolor.png", "m2tp/Textures/blocksrough_roughness.png", "m2tp/Textures/blocksrough_metallic.png");
+		//renderer4->LoadPBRTextures("m2tp/Textures/cement_basecolor.png", "m2tp/Textures/cement_roughness.png", "m2tp/Textures/cement_metallic.png");
 		gameObjects.push_back(cube3);
 		rootObject->AddChild(cube3);
 		cube3->SetPosition(20.0f, 10.0f, 0.0f);
@@ -202,7 +209,7 @@ public:
 		cube3->RotateAround(Vector(0, 1, 0), -90.0f);
 		renderer4->SetColor(Color(1.0, 1.0, 1.0, 1.0));
 
-		/*GameObject* cube2 = new GameObject();
+		GameObject* cube2 = new GameObject();
 		cube2->SetName("cube2");
 		MeshRenderer* renderer3 = new MeshRenderer();
 		cube2->AddComponent(renderer3);
@@ -214,13 +221,13 @@ public:
 		cube2->SetPosition(0.0f, 10.0f, -20.0f);
 		cube2->SetScale(40.0f, 1.0f, 40.0f);
 		cube2->RotateAround(Vector(1, 0, 0), -90.0f);
-		renderer3->SetColor(Color(1.0, 1.0, 1.0, 1.0));*/
+		renderer3->SetColor(Color(1.0, 1.0, 1.0, 1.0));
 
 		// Set up light
 		GameObject* lightObject = new GameObject();
 		lightObject->SetName("lightObject");
 		lightObject->SetPosition(0.0f, 0.0f, 0.0f);
-		lightObject->RotateAround(Vector(0, 1, 0), 135);
+		lightObject->RotateAround(Vector(0, 1, 0), 45);
 		lightObject->RotateAround(lightObject->GetRightVector(), 45);
 		mainLight = new DirectionalLight(3.0f, White());
 		lightObject->AddComponent(mainLight);
