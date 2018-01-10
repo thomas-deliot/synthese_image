@@ -34,7 +34,7 @@ uniform float nearZ;
 uniform float farZ;
 
 const float PI = 3.14159265359f;
-const float reflectionStrength = 0.0013;
+const float reflectionStrength = 0.002;
 const float maxSteps = 256;
 const float binarySearchIterations = 4;
 const float maxDistance = 100.0;
@@ -66,7 +66,8 @@ float ComputeBlendFactorForIntersection(float iterationCount, vec2 hitPixel, vec
 float DistanceSquared(vec2 a, vec2 b);
 float Linear01Depth(float z);
 float LinearEyeDepth(float z);
-vec3 colorForLight(vec3 V, vec3 N, vec3 R, vec3 F, vec3 kD, float NdotV, vec3 vsLightDir, vec3 incomingColor, vec3 surfaceColor, float roughness);
+vec3 colorForDirectionalLight(vec3 vsPos, vec3 vsNormal, vec3 vsLightDir, vec3 incomingColor, vec3 surfaceColor, float metalness, float roughness);
+vec3 colorForAmbientLight(vec3 vsPos, vec3 vsNormal, vec3 incomingColor, vec3 surfaceColor, float metalness, float roughness);
 vec3 colorLinear(vec3 colorVector);
 float saturate(float f);
 vec2 getSphericalCoord(vec3 normalCoord);
@@ -96,15 +97,14 @@ void main()
 		return;
 	}
 
-	// Calculate world pixel pos and normal
+	// Screen Space Reflection Test
 	vec4 clipSpacePosition = vec4(vtexcoord.xy * 2.0 - 1.0, z * 2.0 - 1.0, 1);
 	vec4 viewSpacePosition = invProj * clipSpacePosition;
 	viewSpacePosition /= viewSpacePosition.w;
 	vec3 vsPos = viewSpacePosition.xyz;
-
-	// Screen Space Reflection Test
 	vec3 vsRayDir = normalize(vsPos);
 	vec3 vsReflect = reflect(vsRayDir, vsNormal);
+	vec3 worldReflect = (invView * vec4(vsReflect.xyz, 0)).xyz;
 	vec2 hitPixel = vec2(0, 0);
 	vec3 hitPoint = vec3(0, 0, 0);
 	vec2 uv2 = vtexcoord * renderSize;
@@ -120,30 +120,17 @@ void main()
 	
 	// Blend between reprojected SSR sample and skybox
 	float reflBlend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect);
-	vec4 hitColor = mix(texture(skybox, worldNormal), texture(prevColorBuffer, prev.xy * 0.5 + 0.5), reflBlend);
+	if (hit == false)
+		reflBlend = 0.0;
+	vec4 ambientColor = mix(texture(skybox, worldReflect), texture(prevColorBuffer, prev.xy * 0.5 + 0.5), reflBlend);
 		
-	// Final Lighting computation
-	vec3 V = normalize(-vsPos);
-	vec3 N = normalize(vsNormal);
-	vec3 R = reflect(-V, N);
-	float NdotV = max(dot(N, V), 0.0001);
-
-	// Fresnel (Schlick) computation (F term)
-	vec3 F0 = mix(vec3(0.04, 0.04, 0.04), albedo, metalness);
-	vec3 F = computeFresnelSchlick(NdotV, F0);
-
-	// Energy conservation
-	vec3 kS = F;
-	vec3 kD = vec3(1.0, 1.0, 1.0) - kS;
-	kD *= 1.0 - metalness;
-	
 	// Directional Light + Reflection light
 	vec3 color = vec3(0, 0, 0);
-	color += colorForLight(V, N, R, F, kD, NdotV, vsLightDir, lightColor.rgb * lightStrength, albedo, roughness);
-	color += colorForLight(V, N, R, F, kD, NdotV, -vsLightDir, lightColor.rgb * lightStrength * 0.2, albedo, roughness);
-	color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb * reflectionStrength, albedo, roughness);
-	//color += colorForLight(V, N, R, F, kD, NdotV, vsReflect, albedo.rgb * 0.0003, albedo, roughness);
+	color += colorForDirectionalLight(vsPos, vsNormal, vsLightDir, lightColor.rgb * lightStrength, albedo, metalness, roughness);
+	color += colorForAmbientLight(vsPos, vsNormal, ambientColor.rgb, albedo, metalness, roughness);
+	//color += colorForAmbientLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb / (4 * PI), albedo, roughness);
 	
+	// Fake ambient occlusion with SSAO
 	color.rgb *= ComputeSSAOAtten(vsPos, vsNormal);
 	
 	finalColor = vec4(color.rgb, 1);
@@ -376,8 +363,22 @@ float ComputeBlendFactorForIntersection(
 	return alpha;
 }
 
-vec3 colorForLight(vec3 V, vec3 N, vec3 R, vec3 F, vec3 kD, float NdotV, vec3 vsLightDir, vec3 incomingColor, vec3 surfaceColor, float roughness)
+vec3 colorForDirectionalLight(vec3 vsPos, vec3 vsNormal, vec3 vsLightDir, vec3 incomingColor, vec3 surfaceColor, float metalness, float roughness)
 {
+	vec3 V = normalize(-vsPos);
+	vec3 N = normalize(vsNormal);
+	vec3 R = reflect(-V, N);
+	float NdotV = max(dot(N, V), 0.0001);
+
+	// Fresnel (Schlick) computation (F term)
+	vec3 F0 = mix(vec3(0.04, 0.04, 0.04), surfaceColor, metalness);
+	vec3 F = computeFresnelSchlick(NdotV, F0);
+
+	// Energy conservation
+	vec3 kS = F;
+	vec3 kD = vec3(1.0, 1.0, 1.0) - kS;
+	kD *= 1.0 - metalness;
+	
 	vec3 L = normalize(vsLightDir);
     vec3 H = normalize(L + V);
 
@@ -400,6 +401,32 @@ vec3 colorForLight(vec3 V, vec3 N, vec3 R, vec3 F, vec3 kD, float NdotV, vec3 vs
     vec3 specular = (F * D * G) / (4.0f * NdotL * NdotV + 0.0001);
 
 	return (diffuse * kD + specular) * incomingColor * NdotL;
+}
+
+vec3 colorForAmbientLight(vec3 vsPos, vec3 vsNormal, vec3 incomingColor, vec3 surfaceColor, float metalness, float roughness)
+{
+	vec3 V = normalize(-vsPos);
+	vec3 N = normalize(vsNormal);
+	vec3 R = reflect(-V, N);
+	float NdotV = max(dot(N, V), 0.0001);
+
+	// Fresnel (Schlick) computation (F term)
+	vec3 F0 = mix(vec3(0.04, 0.04, 0.04), surfaceColor, metalness);
+	vec3 F = computeFresnelSchlickRoughness(NdotV, F0, roughness);
+	vec3 kS = F;
+	vec3 kD = vec3(1.0) - kS;
+	kD *= 1.0 - metalness;
+	
+	// Diffuse irradience computation
+	vec3 diffuseIrradiance = incomingColor;
+	diffuseIrradiance *= surfaceColor;
+	
+	// Specular radiance computation
+	vec3 specularRadiance = diffuseIrradiance;
+	specularRadiance *= F;
+	
+	vec3 ambientIBL = (diffuseIrradiance * kD) + specularRadiance;
+	return ambientIBL;
 }
 
 vec3 colorLinear(vec3 colorVector)

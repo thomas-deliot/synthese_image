@@ -388,7 +388,7 @@ public:
 			}
 
 			if (this->parent != nullptr)
-				objectToWorld = localTRS * this->parent->GetObjectToWorldMatrix();
+				objectToWorld = this->parent->GetObjectToWorldMatrix() * localTRS;
 			else
 				objectToWorld = localTRS;
 			transformNeedsToUpdate = false;
