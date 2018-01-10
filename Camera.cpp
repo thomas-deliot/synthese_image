@@ -129,14 +129,27 @@ void Camera::FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight)
 		glBindSampler(unit, colorSampler);
 		glUniform1i(id, unit);
 	}
+	id = glGetUniformLocation(finalDeferredSSR, "prevColorBuffer");
+	if (id >= 0 && prevColorBuffer >= 0)
+	{
+		int unit = 3;
+		glActiveTexture(GL_TEXTURE0 + unit);
+		glBindTexture(GL_TEXTURE_2D, prevColorBuffer);
+		glBindSampler(unit, prevColorSampler);
+		glUniform1i(id, unit);
+	}
 
 	Transform trs = Translation(0.5f, 0.5f, 0.0f);
 	trs = trs * Scale(0.5f, 0.5f, 1.0f);
 	Transform screenScale = Scale(frameWidth, frameHeight, 1.0f);
 	Transform projToPixel = screenScale * trs * projectionMatrix;
-	glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "projToPixel"), 1, GL_TRUE, projToPixel.buffer());
 	Transform invP = projectionMatrix.inverse();
+	Transform invV = GetViewMatrix().inverse();
+	glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "projToPixel"), 1, GL_TRUE, projToPixel.buffer());
 	glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "invProj"), 1, GL_TRUE, invP.buffer());
+	glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "prevProj"), 1, GL_TRUE, prevProjectionMatrix.buffer());
+	glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "invView"), 1, GL_TRUE, invV.buffer());
+	glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "prevView"), 1, GL_TRUE, prevViewMatrix.buffer());
 	glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "viewMatrix"), 1, GL_TRUE, GetViewMatrix().buffer());
 	glUniform1f(glGetUniformLocation(finalDeferredSSR, "nearZ"), nearZ);
 	glUniform1f(glGetUniformLocation(finalDeferredSSR, "farZ"), farZ);
@@ -151,8 +164,6 @@ void Camera::FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight)
 	glUniform3fv(glGetUniformLocation(finalDeferredSSR, "lightDir"), 1, &lightDir.x);
 	glUniform4fv(glGetUniformLocation(finalDeferredSSR, "lightColor"), 1, &lightColor.r);
 	glUniform1f(glGetUniformLocation(finalDeferredSSR, "lightStrength"), light->GetStrength());
-	Transform invV = GetViewMatrix().inverse();
-	glUniformMatrix4fv(glGetUniformLocation(finalDeferredSSR, "invView"), 1, GL_TRUE, invV.buffer());
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }

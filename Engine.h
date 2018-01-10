@@ -124,6 +124,8 @@ public:
 			0, 0, frameWidth, frameHeight,
 			GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
+		mainCamera->UpdatePreviousColorBuffer();
+
 		DisplayGUI();
 		return 1;
 	}

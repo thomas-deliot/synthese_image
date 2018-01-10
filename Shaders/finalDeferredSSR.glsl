@@ -20,11 +20,14 @@ void main( )
 uniform sampler2D colorBuffer;
 uniform sampler2D normalBuffer;
 uniform sampler2D depthBuffer;
+uniform sampler2D prevColorBuffer;
 uniform vec2 renderSize;
 uniform mat4 viewMatrix;
 uniform mat4 projToPixel;
 uniform mat4 invProj;
+uniform mat4 prevProj;
 uniform mat4 invView;
+uniform mat4 prevView;
 uniform float nearZ;
 uniform float farZ;
 
@@ -42,7 +45,7 @@ const float eyeFadeEnd = 1.0;
 
 const float ssaoStrength = 4.0; // 0.0 is no ssao, higher is stronger
 const float ssaoDist = 3.0;
-const float ssaoPiDivider = 10.0; // fibonacci directions step = PI / ssaoPiDivider, higher is more samples
+const float ssaoPiDivider = 12.0; // fibonacci directions step = PI / ssaoPiDivider, higher is more samples
 
 uniform vec3 camPos;
 uniform vec4 ambientLight;
@@ -111,7 +114,14 @@ void main()
 	float reflBlend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect);
 	if(hitPixel.x > 1.0f || hitPixel.x < 0.0f || hitPixel.y > 1.0f || hitPixel.y < 0.0f)
 		reflBlend = 0;	
-	vec4 hitColor = texture(colorBuffer, hitPixel.xy);
+	
+	// Sample reflection in previous frame with temporal reprojection
+	vec4 prev = invView * vec4(hitPoint.xyz, 1);
+	prev = prevView * prev;
+	prev = prevProj * prev;
+	prev.xyz /= prev.w;
+	vec4 hitColor = texture(prevColorBuffer, prev.xy * 0.5 + 0.5);
+	//vec4 hitColor = texture(prevColorBuffer, hitPixel.xy);
 	
 	
 	// Final Lighting computation

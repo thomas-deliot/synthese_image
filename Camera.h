@@ -15,8 +15,7 @@ using namespace std;
 class Camera : public Component
 {
 private:
-	//Transform projectionMatrix = Orthographic(150.0f, 150.0f, 0.1f, 1000.0f);
-	Transform projectionMatrix;;
+	Transform projectionMatrix;
 	int frameWidth = 800;
 	int frameHeight = 800;
 	float nearZ = 0.1f;
@@ -35,6 +34,12 @@ private:
 	GLuint shaderSSAO;
 	GLuint frameBuffer2;
 	GLuint colorBuffer2;
+
+	// Temporal reprojection
+	Transform prevProjectionMatrix;
+	Transform prevViewMatrix;
+	GLuint prevColorBuffer;
+	GLuint prevColorSampler;
 
 public:
 	void Start()
@@ -56,6 +61,8 @@ public:
 		glDeleteFramebuffers(1, &frameBuffer2);
 		glDeleteProgram(finalDeferred);
 		glDeleteProgram(finalDeferredSSR);
+		glDeleteTextures(1, &prevColorBuffer);
+		glDeleteSamplers(1, &prevColorSampler);
 	}
 
 	void SetParameters(const float width, const float height, const float fov, const float nearZ, const float farZ)
@@ -81,6 +88,18 @@ public:
 		glSamplerParameteri(colorSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glSamplerParameteri(colorSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+		glGenTextures(1, &prevColorBuffer);
+		glBindTexture(GL_TEXTURE_2D, prevColorBuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0,
+			GL_RGBA, frameWidth, frameHeight, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		glGenSamplers(1, &prevColorSampler);
+		glSamplerParameteri(prevColorSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glSamplerParameteri(prevColorSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glSamplerParameteri(prevColorSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glSamplerParameteri(prevColorSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
 		// Normal Buffer setup
 		glGenTextures(1, &normalBuffer);
@@ -210,6 +229,17 @@ public:
 	GLuint GetDepthBuffer()
 	{
 		return depthBuffer;
+	}
+
+	void UpdatePreviousColorBuffer()
+	{
+		glBindTexture(GL_TEXTURE_2D, prevColorBuffer);
+		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, frameWidth, frameHeight, 0);
+		glCopyTextureSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, frameWidth, frameHeight);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		prevProjectionMatrix = projectionMatrix;
+		prevViewMatrix = GetViewMatrix();
 	}
 
 	/*!
