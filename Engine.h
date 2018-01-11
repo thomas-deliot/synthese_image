@@ -168,8 +168,7 @@ public:
 		cameraObject->AddComponent(mainCamera);
 		gameObjects.push_back(cameraObject);
 		rootObject->AddChild(cameraObject);
-		cameraObject->SetPosition(0.0f, 0.0f, -50.0f);
-		cameraObject->RotateAround(Vector(0, 1, 0), 180);
+		cameraObject->SetPosition(0.0f, 0.0f, 50.0f);
 		mainCamera->SetupFrameBuffer(frameWidth, frameHeight);
 		FlyCamera* flyCam = new FlyCamera();
 		cameraObject->AddComponent(flyCam);
@@ -191,7 +190,6 @@ public:
 		scene1->SetName("scene1");
 		gameObjects.push_back(scene1);
 		rootObject->AddChild(scene1);
-		scene1->RotateAround(Vector(0, 1, 0), 180.0f);
 
 		GameObject* ball1 = new GameObject();
 		ball1->SetName("ball1");
@@ -223,8 +221,8 @@ public:
 		MeshRenderer* renderer4 = new MeshRenderer();
 		cube3->AddComponent(renderer4);
 		renderer4->LoadMesh("data/cube.obj");
-		renderer4->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		renderer4->LoadTexture("m2tp/Textures/colors.jpg", 1.0f, 0.0f);
+		renderer4->LoadShader("m2tp/Shaders/pbr_shader.glsl");
+		renderer4->LoadPBRTextures("m2tp/Textures/rustediron_basecolor.png", "m2tp/Textures/rustediron_roughness.png", "m2tp/Textures/rustediron_metallic.png");
 		gameObjects.push_back(cube3);
 		scene1->AddChild(cube3);
 		cube3->SetPosition(20.0f, 10.0f, 0.0f);
@@ -238,8 +236,8 @@ public:
 		MeshRenderer* renderer1 = new MeshRenderer();
 		cube0->AddComponent(renderer1);
 		renderer1->LoadMesh("data/cube.obj");
-		renderer1->LoadShader("m2tp/Shaders/pbr_shader.glsl");
-		renderer1->LoadPBRTextures("m2tp/Textures/rustediron_basecolor.png", "m2tp/Textures/rustediron_roughness.png", "m2tp/Textures/rustediron_metallic.png");
+		renderer1->LoadShader("m2tp/Shaders/basic_shader.glsl");
+		renderer1->LoadTexture("m2tp/Textures/colors.jpg", 1.0f, 0.0f);
 		gameObjects.push_back(cube0);
 		scene1->AddChild(cube0);
 		cube0->SetPosition(-20.0f, 10.0f, 0.0f);

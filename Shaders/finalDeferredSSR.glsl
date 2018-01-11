@@ -36,7 +36,7 @@ const float PI = 3.14159265359f;
 
 // SSR parameters
 const float maxSteps = 256;
-const float binarySearchIterations = 4;
+const float binarySearchIterations = 0;
 const float maxDistance = 100.0;
 const float stride = 8.0;
 const float zThickness = 1.0;
