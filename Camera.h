@@ -99,8 +99,8 @@ public:
 			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glGenSamplers(1, &prevColorSampler);
-		glSamplerParameteri(prevColorSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glSamplerParameteri(prevColorSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glSamplerParameteri(prevColorSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glSamplerParameteri(prevColorSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glSamplerParameteri(prevColorSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glSamplerParameteri(prevColorSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
@@ -155,8 +155,8 @@ public:
 
 		// Skybox sampler
 		glGenSamplers(1, &skyboxSampler);
-		glSamplerParameteri(skyboxSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glSamplerParameteri(skyboxSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glSamplerParameteri(skyboxSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glSamplerParameteri(skyboxSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glSamplerParameteri(skyboxSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glSamplerParameteri(skyboxSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glSamplerParameteri(skyboxSampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -166,13 +166,10 @@ public:
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	}
 
-	void FinishDeferredRendering(DirectionalLight* light, Color ambientLight, Skybox* skybox, bool reflections)
+	void FinishDeferredRendering(DirectionalLight* light, Skybox* skybox)
 	{
 		BeginPostEffect();
-		if(reflections == true)
-			FinalDeferredPassSSR(light, ambientLight, skybox);
-		else
-			FinalDeferredPass(light, ambientLight);
+		FinalDeferredPassSSR(light, skybox);
 		EndPostEffect();
 	}
 
@@ -195,9 +192,7 @@ public:
 			GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	}
 
-	void FinalDeferredPass(DirectionalLight* light, Color ambientLight);
-
-	void FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight, Skybox* skybox);
+	void FinalDeferredPassSSR(DirectionalLight* light, Skybox* skybox);
 
 	void SSAO();
 
@@ -243,6 +238,10 @@ public:
 		glBindTexture(GL_TEXTURE_2D, prevColorBuffer);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, frameWidth, frameHeight, 0);
 		glCopyTextureSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, frameWidth, frameHeight);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, prevColorBuffer);
+		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		prevProjectionMatrix = projectionMatrix;

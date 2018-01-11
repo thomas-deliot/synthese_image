@@ -112,42 +112,20 @@ void main()
 	vec2 uv2 = vtexcoord * renderSize;
 	float jitter = mod((uv2.x + uv2.y) * 0.25, 1.0);
 	float iterations = 0;
-	
-	// More samples
-	vec3 upDir = vec3(0.0f, 1.0f, 0.0f);
-	vec3 rightDir = cross(upDir, vsReflect);
-	upDir = cross(vsReflect, rightDir);
-	vec2 seed = vec2(vsPos.x * vsReflect.z + vsReflect.y * vsPos.z,
-				vsPos.y * vsReflect.x + vsReflect.z * vsPos.y);
-	
-	vec4 ambientReflected = vec4(0, 0, 0, 0);
-	float range = roughness * 0.5;
-	for(float i = 0.0; i < 16.0; i++)
-	{
-		vec3 vsReflect2 = vsReflect + GetRandomNumberBetween(seed * vec2(i, -3 * i), -range, range) * rightDir
-									+ GetRandomNumberBetween(seed * vec2(-6 * i, 2 * i), -range, range) * upDir;							
-		bool hit = FindSSRHit(vsPos, vsReflect2, jitter, hitPixel, hitPoint, iterations);
-		vec4 prevHit = invView * vec4(hitPoint.xyz, 1);
-		prevHit = prevView * prevHit;
-		prevHit = prevProj * prevHit;
-		prevHit.xyz /= prevHit.w;
-		ambientReflected = textureLod(prevColorBuffer, prevHit.xy * 0.5 + 0.5, roughness * maxRoughnessMipMap);
-	}
-	ambientReflected /= 4.0;
+	bool hit = FindSSRHit(vsPos, vsReflect, jitter, hitPixel, hitPoint, iterations);
 
 	// Sample reflection in previous frame with temporal reprojection
-	/*vec4 prevHit = invView * vec4(hitPoint.xyz, 1);
+	vec4 prevHit = invView * vec4(hitPoint.xyz, 1);
 	prevHit = prevView * prevHit;
 	prevHit = prevProj * prevHit;
-	prevHit.xyz /= prevHit.w;*/
+	prevHit.xyz /= prevHit.w;
 	
 	// Blend between reprojected SSR sample and skybox
 	float reflBlend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect);
-	//if(hit == false)
-	//	reflBlend = 0.0;
-	//vec4 ambientReflected = mix(textureLod(skybox, worldReflect, roughness * maxRoughnessMipMap),
-	//	textureLod(prevColorBuffer, prevHit.xy * 0.5 + 0.5, roughness * maxRoughnessMipMap), reflBlend);
-	ambientReflected = mix(textureLod(skybox, worldReflect, roughness * maxRoughnessMipMap), ambientReflected, reflBlend);
+	if(hit == false)
+		reflBlend = 0.0;
+	vec4 ambientReflected = mix(textureLod(skybox, worldReflect, roughness * maxRoughnessMipMap),
+		textureLod(prevColorBuffer, prevHit.xy * 0.5 + 0.5, roughness * maxRoughnessMipMap), reflBlend);
 	vec4 ambientDiffuse = texture(skybox, worldNormal);
 		
 	// Directional Light + Reflection light

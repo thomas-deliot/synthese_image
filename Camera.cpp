@@ -52,55 +52,7 @@ Vector Camera::GetFarBottomLeftCorner()
 	return bottomLeft * scale;
 }
 
-void Camera::FinalDeferredPass(DirectionalLight* light, Color ambientLight)
-{
-	glUseProgram(finalDeferred);
-	int id = glGetUniformLocation(finalDeferred, "colorBuffer");
-	if (id >= 0 && colorBuffer >= 0)
-	{
-		int unit = 0;
-		glActiveTexture(GL_TEXTURE0 + unit);
-		glBindTexture(GL_TEXTURE_2D, colorBuffer);
-		glBindSampler(unit, colorSampler);
-		glUniform1i(id, unit);
-	}
-	id = glGetUniformLocation(finalDeferred, "normalBuffer");
-	if (id >= 0 && normalBuffer >= 0)
-	{
-		int unit = 1;
-		glActiveTexture(GL_TEXTURE0 + unit);
-		glBindTexture(GL_TEXTURE_2D, normalBuffer);
-		glBindSampler(unit, normalSampler);
-		glUniform1i(id, unit);
-	}
-	id = glGetUniformLocation(finalDeferred, "depthBuffer");
-	if (id >= 0 && depthBuffer >= 0)
-	{
-		int unit = 2;
-		glActiveTexture(GL_TEXTURE0 + unit);
-		glBindTexture(GL_TEXTURE_2D, depthBuffer);
-		glBindSampler(unit, colorSampler);
-		glUniform1i(id, unit);
-	}
-
-	Vector camPos = this->GetGameObject()->GetPosition();
-	Vector lightDir = light->GetGameObject()->GetForwardVector();
-	Color lightColor = light->GetColor();
-	glUniform3fv(glGetUniformLocation(finalDeferred, "camPos"), 1, &camPos.x);
-	glUniform4fv(glGetUniformLocation(finalDeferred, "ambientLight"), 1, &ambientLight.r);
-	glUniform3fv(glGetUniformLocation(finalDeferred, "lightDir"), 1, &lightDir.x);
-	glUniform4fv(glGetUniformLocation(finalDeferred, "lightColor"), 1, &lightColor.r);
-	glUniform1f(glGetUniformLocation(finalDeferred, "lightStrength"), light->GetStrength());
-	Transform invP = projectionMatrix.inverse();
-	Transform invV = GetViewMatrix().inverse();
-	glUniformMatrix4fv(glGetUniformLocation(finalDeferred, "invProj"), 1, GL_TRUE, invP.buffer());
-	glUniformMatrix4fv(glGetUniformLocation(finalDeferred, "invView"), 1, GL_TRUE, invV.buffer());
-	glUniformMatrix4fv(glGetUniformLocation(finalDeferred, "viewMatrix"), 1, GL_TRUE, GetViewMatrix().buffer());
-
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-}
-
-void Camera::FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight, Skybox* skybox)
+void Camera::FinalDeferredPassSSR(DirectionalLight* light, Skybox* skybox)
 {
 	glUseProgram(finalDeferredSSR);
 	int id = glGetUniformLocation(finalDeferredSSR, "colorBuffer");
@@ -170,7 +122,6 @@ void Camera::FinalDeferredPassSSR(DirectionalLight* light, Color ambientLight, S
 	Vector lightDir = light->GetGameObject()->GetForwardVector();
 	Color lightColor = light->GetColor();
 	glUniform3fv(glGetUniformLocation(finalDeferredSSR, "camPos"), 1, &camPos.x);
-	glUniform4fv(glGetUniformLocation(finalDeferredSSR, "ambientLight"), 1, &ambientLight.r);
 	glUniform3fv(glGetUniformLocation(finalDeferredSSR, "lightDir"), 1, &lightDir.x);
 	glUniform4fv(glGetUniformLocation(finalDeferredSSR, "lightColor"), 1, &lightColor.r);
 	glUniform1f(glGetUniformLocation(finalDeferredSSR, "lightStrength"), light->GetStrength());
