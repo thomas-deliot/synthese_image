@@ -32,9 +32,9 @@ uniform mat4 invView;
 uniform mat4 prevView;
 uniform float nearZ;
 uniform float farZ;
-
 const float PI = 3.14159265359f;
-const float reflectionStrength = 0.002;
+
+// SSR parameters
 const float maxSteps = 256;
 const float binarySearchIterations = 4;
 const float maxDistance = 100.0;
@@ -45,15 +45,17 @@ const float screenEdgeFadeStart = 0.75;
 const float eyeFadeStart = 0.5;
 const float eyeFadeEnd = 1.0;
 
+// SSAO parameters
 const float ssaoStrength = 4.0; // 0.0 is no ssao, higher is stronger
 const float ssaoDist = 3.0;
 const float ssaoPiDivider = 12.0; // fibonacci directions step = PI / ssaoPiDivider, higher is more samples
 
+// Lighting parameters
 uniform vec3 camPos;
-uniform vec4 ambientLight;
 uniform vec3 lightDir;
 uniform vec4 lightColor;
 uniform float lightStrength;
+const float maxRoughnessMipMap = 7.0;
 
 in vec2 vtexcoord;
 out vec4 finalColor;
@@ -67,7 +69,7 @@ float DistanceSquared(vec2 a, vec2 b);
 float Linear01Depth(float z);
 float LinearEyeDepth(float z);
 vec3 colorForDirectionalLight(vec3 vsPos, vec3 vsNormal, vec3 vsLightDir, vec3 incomingColor, vec3 surfaceColor, float metalness, float roughness);
-vec3 colorForAmbientLight(vec3 vsPos, vec3 vsNormal, vec3 incomingColor, vec3 surfaceColor, float metalness, float roughness);
+vec3 colorForIBL(vec3 vsPos, vec3 vsNormal, vec3 incomingAmbient, vec3 incomingReflected, vec3 surfaceColor, float metalness, float roughness);
 vec3 colorLinear(vec3 colorVector);
 float saturate(float f);
 vec2 getSphericalCoord(vec3 normalCoord);
@@ -110,25 +112,48 @@ void main()
 	vec2 uv2 = vtexcoord * renderSize;
 	float jitter = mod((uv2.x + uv2.y) * 0.25, 1.0);
 	float iterations = 0;
-	bool hit = FindSSRHit(vsPos, vsReflect, jitter, hitPixel, hitPoint, iterations);
+	
+	// More samples
+	vec3 upDir = vec3(0.0f, 1.0f, 0.0f);
+	vec3 rightDir = cross(upDir, vsReflect);
+	upDir = cross(vsReflect, rightDir);
+	vec2 seed = vec2(vsPos.x * vsReflect.z + vsReflect.y * vsPos.z,
+				vsPos.y * vsReflect.x + vsReflect.z * vsPos.y);
+	
+	vec4 ambientReflected = vec4(0, 0, 0, 0);
+	float range = roughness * 0.5;
+	for(float i = 0.0; i < 16.0; i++)
+	{
+		vec3 vsReflect2 = vsReflect + GetRandomNumberBetween(seed * vec2(i, -3 * i), -range, range) * rightDir
+									+ GetRandomNumberBetween(seed * vec2(-6 * i, 2 * i), -range, range) * upDir;							
+		bool hit = FindSSRHit(vsPos, vsReflect2, jitter, hitPixel, hitPoint, iterations);
+		vec4 prevHit = invView * vec4(hitPoint.xyz, 1);
+		prevHit = prevView * prevHit;
+		prevHit = prevProj * prevHit;
+		prevHit.xyz /= prevHit.w;
+		ambientReflected = textureLod(prevColorBuffer, prevHit.xy * 0.5 + 0.5, roughness * maxRoughnessMipMap);
+	}
+	ambientReflected /= 4.0;
 
 	// Sample reflection in previous frame with temporal reprojection
-	vec4 prev = invView * vec4(hitPoint.xyz, 1);
-	prev = prevView * prev;
-	prev = prevProj * prev;
-	prev.xyz /= prev.w;
+	/*vec4 prevHit = invView * vec4(hitPoint.xyz, 1);
+	prevHit = prevView * prevHit;
+	prevHit = prevProj * prevHit;
+	prevHit.xyz /= prevHit.w;*/
 	
 	// Blend between reprojected SSR sample and skybox
 	float reflBlend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect);
-	if (hit == false)
-		reflBlend = 0.0;
-	vec4 ambientColor = mix(texture(skybox, worldReflect), texture(prevColorBuffer, prev.xy * 0.5 + 0.5), reflBlend);
+	//if(hit == false)
+	//	reflBlend = 0.0;
+	//vec4 ambientReflected = mix(textureLod(skybox, worldReflect, roughness * maxRoughnessMipMap),
+	//	textureLod(prevColorBuffer, prevHit.xy * 0.5 + 0.5, roughness * maxRoughnessMipMap), reflBlend);
+	ambientReflected = mix(textureLod(skybox, worldReflect, roughness * maxRoughnessMipMap), ambientReflected, reflBlend);
+	vec4 ambientDiffuse = texture(skybox, worldNormal);
 		
 	// Directional Light + Reflection light
 	vec3 color = vec3(0, 0, 0);
 	color += colorForDirectionalLight(vsPos, vsNormal, vsLightDir, lightColor.rgb * lightStrength, albedo, metalness, roughness);
-	color += colorForAmbientLight(vsPos, vsNormal, ambientColor.rgb, albedo, metalness, roughness);
-	//color += colorForAmbientLight(V, N, R, F, kD, NdotV, vsReflect, hitColor.rgb / (4 * PI), albedo, roughness);
+	color += colorForIBL(vsPos, vsNormal, ambientDiffuse.rgb, ambientReflected.rgb, albedo, metalness, roughness);
 	
 	// Fake ambient occlusion with SSAO
 	color.rgb *= ComputeSSAOAtten(vsPos, vsNormal);
@@ -403,7 +428,7 @@ vec3 colorForDirectionalLight(vec3 vsPos, vec3 vsNormal, vec3 vsLightDir, vec3 i
 	return (diffuse * kD + specular) * incomingColor * NdotL;
 }
 
-vec3 colorForAmbientLight(vec3 vsPos, vec3 vsNormal, vec3 incomingColor, vec3 surfaceColor, float metalness, float roughness)
+vec3 colorForIBL(vec3 vsPos, vec3 vsNormal, vec3 incomingAmbient, vec3 incomingReflected, vec3 surfaceColor, float metalness, float roughness)
 {
 	vec3 V = normalize(-vsPos);
 	vec3 N = normalize(vsNormal);
@@ -418,11 +443,11 @@ vec3 colorForAmbientLight(vec3 vsPos, vec3 vsNormal, vec3 incomingColor, vec3 su
 	kD *= 1.0 - metalness;
 	
 	// Diffuse irradience computation
-	vec3 diffuseIrradiance = incomingColor;
+	vec3 diffuseIrradiance = incomingAmbient;
 	diffuseIrradiance *= surfaceColor;
 	
 	// Specular radiance computation
-	vec3 specularRadiance = diffuseIrradiance;
+	vec3 specularRadiance = incomingReflected;
 	specularRadiance *= F;
 	
 	vec3 ambientIBL = (diffuseIrradiance * kD) + specularRadiance;
