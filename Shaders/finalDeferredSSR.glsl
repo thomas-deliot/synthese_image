@@ -35,9 +35,9 @@ uniform float farZ;
 const float PI = 3.14159265359f;
 
 // SSR parameters
-const float maxSteps = 256;
-const float binarySearchIterations = 0;
-const float maxDistance = 100.0;
+const float maxSteps = 128;
+const float binarySearchIterations = 4;
+const float maxDistance = 10000.0;
 const float stride = 8.0;
 const float zThickness = 1.0;
 const float strideZCutoff = 100.0;
@@ -295,6 +295,7 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 	}
 	
 	// Binary search refinement
+	float addDQ = 0.0;
 	if(pixelStride > 1.0 && intersect)
 	{
 		pqk -= dPQK;
@@ -308,15 +309,16 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 	    for(float j = 0; j < binarySearchIterations; j++)
 		{
 			pqk += dPQK * stride;
+			addDQ += stride;
 				    	
 			zA = zB;
 			zB = (dPQK.z * 0.5 + pqk.z) / (dPQK.w * 0.5 + pqk.w);
-	    	if (zB > zA) 
+	    	/*if (zB > zA) 
 			{ 
 				float t = zA;
 				zA = zB;
 				zB = t;
-			}
+			}*/
 				    	
 			hitPixel = permute ? pqk.yx : pqk.xy;
 			//hitPixel.y = renderSize.y - hitPixel.y;
@@ -331,7 +333,7 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 	}
 
 	// Advance Q based on the number of steps
-	Q0.xy += dQ.xy * i;
+	Q0.xy += dQ.xy * (i - 1) + (dQ.xy / pixelStride) * addDQ;
 	Q0.z = pqk.z;
 	hitPoint = Q0 / pqk.w;
 	iterations = i;
@@ -348,7 +350,7 @@ float ComputeBlendFactorForIntersection(
 	float alpha = 1.0f;
 
 	// Fade ray hits that approach the maximum iterations
-	alpha *= 1.0 - (iterationCount / maxSteps);
+	alpha *= 1.0 - pow(iterationCount / maxSteps, 8.0);
 
 	// Fade ray hits that approach the screen edge
 	float screenFade = screenEdgeFadeStart;

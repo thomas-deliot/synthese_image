@@ -237,7 +237,7 @@ public:
 	{
 		glBindTexture(GL_TEXTURE_2D, prevColorBuffer);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, frameWidth, frameHeight, 0);
-		glCopyTextureSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, frameWidth, frameHeight);
+		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, frameWidth, frameHeight);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, prevColorBuffer);
