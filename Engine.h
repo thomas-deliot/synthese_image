@@ -25,10 +25,14 @@ class Engine : public App
 private:
 	Uint64 lastTime;
 	Uint64 newTime;
+	Uint64 beginFrame;
+	Uint64 endFrame;
 	Text console;
 	unsigned int oldFPSTimer = 0;
 	int frameWidth = 1280;
 	int frameHeight = 720;
+	float avgFrametime = 0.0f;
+	int frametimeCounter = 0;
 
 	// Scene setup
 	GameObject* rootObject;
@@ -89,6 +93,8 @@ public:
 
 	int render()
 	{
+		beginFrame = SDL_GetPerformanceCounter();
+
 		// Draw scene
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mainCamera->GetFrameBuffer());
 		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, mainCamera->GetColorBuffer(), 0);
@@ -123,10 +129,20 @@ public:
 			0, 0, frameWidth, frameHeight,
 			0, 0, frameWidth, frameHeight,
 			GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
 		mainCamera->UpdatePreviousColorBuffer();
 
 		DisplayGUI();
+
+		glFinish();
+		endFrame = SDL_GetPerformanceCounter();
+		float delta = (double)((endFrame - beginFrame) * 1000) / SDL_GetPerformanceFrequency();
+		frametimeCounter++;
+		if (frametimeCounter == 1)
+			avgFrametime = delta;
+		else
+			avgFrametime = avgFrametime + (delta - avgFrametime) / frametimeCounter;
+		cout << delta << "  :  " << avgFrametime << endl;
+
 		return 1;
 	}
 
@@ -134,6 +150,8 @@ public:
 	{
 		newTime = SDL_GetPerformanceCounter();
 		float delta2 = (double)((newTime - lastTime) * 1000) / SDL_GetPerformanceFrequency();
+
+		//cout << mainCamera->GetGameObject()->GetPosition() << endl;
 
 		for (int i = 0; i < gameObjects.size(); i++)
 		{
@@ -154,7 +172,8 @@ public:
 		GameObject* lightObject = new GameObject();
 		lightObject->SetName("lightObject");
 		lightObject->SetPosition(0.0f, 0.0f, 0.0f);
-		lightObject->RotateAround(Vector(0, 1, 0), 192);
+		//lightObject->RotateAround(Vector(0, 1, 0), 192);
+		lightObject->RotateAround(Vector(0, 1, 0), 0);
 		lightObject->RotateAround(lightObject->GetRightVector(), 45);
 		mainLight = new DirectionalLight(1.0f, White());
 		lightObject->AddComponent(mainLight);
@@ -168,10 +187,12 @@ public:
 		cameraObject->AddComponent(mainCamera);
 		gameObjects.push_back(cameraObject);
 		rootObject->AddChild(cameraObject);
-		cameraObject->SetPosition(0.0f, 0.0f, 50.0f);
+		cameraObject->SetPosition(-91.0f, 4.5f, 33.0f);
+		cameraObject->RotateAround(Vector(0, 1, 0), 2.0);
+		cameraObject->RotateAround(cameraObject->GetRightVector(), 17.0f);
 		mainCamera->SetupFrameBuffer(frameWidth, frameHeight);
 		FlyCamera* flyCam = new FlyCamera();
-		cameraObject->AddComponent(flyCam);
+		//cameraObject->AddComponent(flyCam);
 
 		// Set up skybox
 		skybox = new Skybox();
@@ -334,8 +355,6 @@ public:
 		renderer7->LoadMesh("data/cube.obj");
 		renderer7->LoadShader("m2tp/Shaders/pbr_shader.glsl");
 		renderer7->LoadPBRTextures("m2tp/Textures/aluminium_basecolor.png", "m2tp/Textures/aluminium_roughness.png", "m2tp/Textures/aluminium_metallic.png");
-		//renderer7->LoadShader("m2tp/Shaders/basic_shader.glsl");
-		//renderer7->LoadTexture("data/debug2x2red.png", 0.7f, 0.2f);
 		gameObjects.push_back(cube4);
 		scene2->AddChild(cube4);
 		cube4->SetPosition(0.0f, -10.0f, 0.0f);

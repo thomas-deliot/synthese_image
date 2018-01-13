@@ -29,10 +29,10 @@ private:
 	GLuint depthBuffer;
 	GLuint colorSampler;
 	GLuint normalSampler;
+	GLuint depthSampler;
 
 	// Post effect
-	GLuint finalDeferred;
-	GLuint finalDeferredSSR;
+	GLuint deferredFinalPass;
 	GLuint shaderSSAO;
 	GLuint frameBuffer2;
 	GLuint colorBuffer2;
@@ -47,9 +47,7 @@ private:
 public:
 	void Start()
 	{
-		finalDeferred = read_program("m2tp/Shaders/finalDeferred.glsl");
-		finalDeferredSSR = read_program("m2tp/Shaders/finalDeferredSSR.glsl");
-		//shaderSSAO = read_program("m2tp/Shaders/SSAO.glsl");
+		deferredFinalPass = read_program("m2tp/Shaders/deferred_SSR_SSAO.glsl");
 		SetParameters(frameWidth, frameHeight, fov, nearZ, farZ);
 	}
 
@@ -62,8 +60,7 @@ public:
 		glDeleteSamplers(1, &normalSampler);
 		glDeleteTextures(1, &colorBuffer2);
 		glDeleteFramebuffers(1, &frameBuffer2);
-		glDeleteProgram(finalDeferred);
-		glDeleteProgram(finalDeferredSSR);
+		glDeleteProgram(deferredFinalPass);
 		glDeleteTextures(1, &prevColorBuffer);
 		glDeleteSamplers(1, &prevColorSampler);
 	}
@@ -123,6 +120,11 @@ public:
 		glTexImage2D(GL_TEXTURE_2D, 0,
 			GL_DEPTH_COMPONENT, frameWidth, frameHeight, 0,
 			GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+		glGenSamplers(1, &depthSampler);
+		glSamplerParameteri(depthSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glSamplerParameteri(depthSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glSamplerParameteri(depthSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glSamplerParameteri(depthSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
 		// Frame Buffer setup
 		glGenFramebuffers(1, &frameBuffer);
@@ -237,7 +239,7 @@ public:
 	{
 		glBindTexture(GL_TEXTURE_2D, prevColorBuffer);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, frameWidth, frameHeight, 0);
-		glCopyTextureSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, frameWidth, frameHeight);
+		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, frameWidth, frameHeight);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, prevColorBuffer);
