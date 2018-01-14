@@ -47,7 +47,6 @@ private:
 public:
 	void Start()
 	{
-		deferredFinalPass = read_program("m2tp/Shaders/deferred_SSR_SSAO.glsl");
 		SetParameters(frameWidth, frameHeight, fov, nearZ, farZ);
 	}
 
@@ -63,6 +62,11 @@ public:
 		glDeleteProgram(deferredFinalPass);
 		glDeleteTextures(1, &prevColorBuffer);
 		glDeleteSamplers(1, &prevColorSampler);
+	}
+
+	void LoadDeferredShader(string s)
+	{
+		deferredFinalPass = read_program(s.c_str());
 	}
 
 	void SetParameters(const float width, const float height, const float fov, const float nearZ, const float farZ)

@@ -56,7 +56,7 @@ uniform vec3 camPos;
 uniform vec3 lightDir;
 uniform vec4 lightColor;
 uniform float lightStrength;
-const float maxRoughnessMipMap = 7.0;
+const float maxRoughnessMipMap = 4.0;
 
 in vec2 vtexcoord;
 out vec4 finalColor;
@@ -127,7 +127,7 @@ void main()
 		reflBlend = 0.0;
 	vec4 ambientReflected = mix(textureLod(skybox, worldReflect, roughness * maxRoughnessMipMap),
 		textureLod(prevColorBuffer, prevHit.xy * 0.5 + 0.5, roughness * maxRoughnessMipMap), reflBlend);
-	vec4 ambientDiffuse = texture(skybox, worldNormal);
+	vec4 ambientDiffuse = textureLod(skybox, worldNormal, roughness * maxRoughnessMipMap);
 		
 	// Directional Light + Reflection light
 	vec3 color = vec3(0, 0, 0);

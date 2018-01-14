@@ -42,6 +42,14 @@ private:
 	Color ambientLight = Color(0.1f, 0.1f, 0.1f, 0.1f);
 	Skybox* skybox;
 
+	// PARAMETRES UTILISATEUR
+	//string shaderToUse = "m2tp/Shaders/deferred.glsl";
+	//string shaderToUse = "m2tp/Shaders/deferred_SSAO.glsl";
+	//string shaderToUse = "m2tp/Shaders/deferred_SSR.glsl";
+	string shaderToUse = "m2tp/Shaders/deferred_SSR_SSAO.glsl";
+	//string shaderToUse = "m2tp/Shaders/deferred_UltraSSR_SSAO.glsl";
+	bool useFlyCamera = false;
+
 public:
 	Engine() : App(1280, 720) {}
 
@@ -141,7 +149,7 @@ public:
 			avgFrametime = delta;
 		else
 			avgFrametime = avgFrametime + (delta - avgFrametime) / frametimeCounter;
-		cout << delta << "  :  " << avgFrametime << endl;
+		//cout << delta << "  :  " << avgFrametime << endl;
 
 		return 1;
 	}
@@ -190,9 +198,11 @@ public:
 		cameraObject->SetPosition(-91.0f, 4.5f, 33.0f);
 		cameraObject->RotateAround(Vector(0, 1, 0), 2.0);
 		cameraObject->RotateAround(cameraObject->GetRightVector(), 17.0f);
+		mainCamera->LoadDeferredShader(shaderToUse);
 		mainCamera->SetupFrameBuffer(frameWidth, frameHeight);
 		FlyCamera* flyCam = new FlyCamera();
-		//cameraObject->AddComponent(flyCam);
+		if(useFlyCamera == true)
+			cameraObject->AddComponent(flyCam);
 
 		// Set up skybox
 		skybox = new Skybox();

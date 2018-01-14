@@ -38,7 +38,7 @@ const float PI = 3.14159265359f;
 const float maxSteps = 256;
 const float binarySearchIterations = 4;
 const float jitterAmount = 1.0;
-const float maxDistance = 10000.0;
+const float maxDistance = 200.0;
 const float stride = 8.0;
 const float zThickness = 1.5;
 const float strideZCutoff = 100.0;
@@ -121,7 +121,7 @@ void main()
 		reflBlend = 0.0;
 	vec4 ambientReflected = mix(textureLod(skybox, worldReflect, roughness * maxRoughnessMipMap),
 		textureLod(prevColorBuffer, prevHit.xy * 0.5 + 0.5, roughness * maxRoughnessMipMap), reflBlend);
-	vec4 ambientDiffuse = texture(skybox, worldNormal);
+	vec4 ambientDiffuse = textureLod(skybox, worldNormal, roughness * maxRoughnessMipMap);
 		
 	// Directional Light + Reflection light
 	vec3 color = vec3(0, 0, 0);

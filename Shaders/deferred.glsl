@@ -90,7 +90,7 @@ void main()
 	vec3 worldReflect = (invView * vec4(vsReflect.xyz, 0)).xyz;
 
 	vec4 ambientReflected = textureLod(skybox, worldReflect, roughness * maxRoughnessMipMap);
-	vec4 ambientDiffuse = texture(skybox, worldNormal);
+	vec4 ambientDiffuse = textureLod(skybox, worldNormal, roughness * maxRoughnessMipMap);
 		
 	// Directional Light + Reflection light
 	vec3 color = vec3(0, 0, 0);
@@ -188,7 +188,7 @@ vec3 colorForIBL(vec3 vsPos, vec3 vsNormal, vec3 incomingAmbient, vec3 incomingR
 	vec3 kD = vec3(1.0) - kS;
 	kD *= 1.0 - metalness;
 	
-	// Diffuse irradience computation
+	// Diffuse irradiance computation
 	vec3 diffuseIrradiance = incomingAmbient;
 	diffuseIrradiance *= surfaceColor;
 	
