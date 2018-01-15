@@ -29,10 +29,10 @@ private:
 	GLuint depthBuffer;
 	GLuint colorSampler;
 	GLuint normalSampler;
+	GLuint depthSampler;
 
 	// Post effect
-	GLuint finalDeferred;
-	GLuint finalDeferredSSR;
+	GLuint deferredFinalPass;
 	GLuint shaderSSAO;
 	GLuint frameBuffer2;
 	GLuint colorBuffer2;
@@ -47,9 +47,6 @@ private:
 public:
 	void Start()
 	{
-		finalDeferred = read_program("m2tp/Shaders/finalDeferred.glsl");
-		finalDeferredSSR = read_program("m2tp/Shaders/finalDeferredSSR.glsl");
-		//shaderSSAO = read_program("m2tp/Shaders/SSAO.glsl");
 		SetParameters(frameWidth, frameHeight, fov, nearZ, farZ);
 	}
 
@@ -62,10 +59,14 @@ public:
 		glDeleteSamplers(1, &normalSampler);
 		glDeleteTextures(1, &colorBuffer2);
 		glDeleteFramebuffers(1, &frameBuffer2);
-		glDeleteProgram(finalDeferred);
-		glDeleteProgram(finalDeferredSSR);
+		glDeleteProgram(deferredFinalPass);
 		glDeleteTextures(1, &prevColorBuffer);
 		glDeleteSamplers(1, &prevColorSampler);
+	}
+
+	void LoadDeferredShader(string s)
+	{
+		deferredFinalPass = read_program(s.c_str());
 	}
 
 	void SetParameters(const float width, const float height, const float fov, const float nearZ, const float farZ)
@@ -123,6 +124,11 @@ public:
 		glTexImage2D(GL_TEXTURE_2D, 0,
 			GL_DEPTH_COMPONENT, frameWidth, frameHeight, 0,
 			GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+		glGenSamplers(1, &depthSampler);
+		glSamplerParameteri(depthSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glSamplerParameteri(depthSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glSamplerParameteri(depthSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glSamplerParameteri(depthSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
 		// Frame Buffer setup
 		glGenFramebuffers(1, &frameBuffer);

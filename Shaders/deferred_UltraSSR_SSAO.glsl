@@ -35,11 +35,12 @@ uniform float farZ;
 const float PI = 3.14159265359f;
 
 // SSR parameters
-const float maxSteps = 128;
+const float maxSteps = 256;
 const float binarySearchIterations = 4;
+const float jitterAmount = 1.0;
 const float maxDistance = 10000.0;
 const float stride = 8.0;
-const float zThickness = 1.0;
+const float zThickness = 1.5;
 const float strideZCutoff = 100.0;
 const float screenEdgeFadeStart = 0.75;
 const float eyeFadeStart = 0.5;
@@ -90,7 +91,7 @@ void main()
 	vec3 worldNormal = temp2.rgb;
 	vec3 vsNormal = mat3(viewMatrix) * worldNormal;
 	vec3 vsLightDir = mat3(viewMatrix) * lightDir;
-	float roughness = temp.a;
+	float roughness = temp.a * 5;
 	float metalness = temp2.a;
 	float z = texture(depthBuffer, vtexcoord).x;
 	if(z >= 0.9999f)
@@ -112,21 +113,33 @@ void main()
 	vec2 uv2 = vtexcoord * renderSize;
 	float jitter = mod((uv2.x + uv2.y) * 0.25, 1.0);
 	float iterations = 0;
-	bool hit = FindSSRHit(vsPos, vsReflect, jitter, hitPixel, hitPoint, iterations);
-
-	// Sample reflection in previous frame with temporal reprojection
-	vec4 prevHit = invView * vec4(hitPoint.xyz, 1);
-	prevHit = prevView * prevHit;
-	prevHit = prevProj * prevHit;
-	prevHit.xyz /= prevHit.w;
 	
-	// Blend between reprojected SSR sample and skybox
-	float reflBlend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect);
-	if(hit == false)
-		reflBlend = 0.0;
-	vec4 ambientReflected = mix(textureLod(skybox, worldReflect, roughness * maxRoughnessMipMap),
-		textureLod(prevColorBuffer, prevHit.xy * 0.5 + 0.5, roughness * maxRoughnessMipMap), reflBlend);
-	vec4 ambientDiffuse = texture(skybox, worldNormal);
+	// SSR MULTIPLE SAMPLES
+	vec3 upDir = vec3(0.0f, 1.0f, 0.0f);
+	vec3 rightDir = cross(upDir, vsReflect);
+	upDir = cross(vsReflect, rightDir);
+	vec2 seed = vec2(vsPos.x * vsReflect.z + vsReflect.y * vsPos.z,
+				vsPos.y * vsReflect.x + vsReflect.z * vsPos.y);	
+	vec4 ambientReflected = vec4(0, 0, 0, 0);
+	float range = roughness * 0.5;
+	float count = 32;
+	for(float i = 0.0; i < count; i++)
+	{
+		vec3 vsReflect2 = vsReflect + GetRandomNumberBetween(seed * vec2(i, -3 * i), -range, range) * rightDir
+									+ GetRandomNumberBetween(seed / vec2(-6 * i, 2 * i), -range, range) * upDir;	
+		vec3 worldReflect2 = (invView * vec4(vsReflect2, 0.0)).xyz;							
+		bool hit = FindSSRHit(vsPos, vsReflect2, jitter, hitPixel, hitPoint, iterations);
+		vec4 prevHit = invView * vec4(hitPoint.xyz, 1);
+		prevHit = prevView * prevHit;
+		prevHit = prevProj * prevHit;
+		prevHit.xyz /= prevHit.w;
+		float reflBlend = ComputeBlendFactorForIntersection(iterations, hitPixel, hitPoint, vsPos, vsReflect2);
+		vec4 temp3 = textureLod(prevColorBuffer, prevHit.xy * 0.5 + 0.5, 0.0);
+		temp3 = mix(textureLod(skybox, worldReflect2, 0.0), temp3, reflBlend);
+		ambientReflected += temp3;
+	}
+	ambientReflected /= count;
+	vec4 ambientDiffuse = textureLod(skybox, worldNormal, roughness * maxRoughnessMipMap);
 		
 	// Directional Light + Reflection light
 	vec3 color = vec3(0, 0, 0);
@@ -279,16 +292,8 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 
 		zA = zB;
 		zB = (dPQK.z * 0.5 + pqk.z) / (dPQK.w * 0.5 + pqk.w);
-		/*if (zB > zA) 
-		{ 
-			float t = zA;
-			zA = zB;
-			zB = t;
-		}*/
  
 		hitPixel = permute ? pqk.yx : pqk.xy;
-		//hitPixel.y = renderSize.y - hitPixel.y;
-
 		hitPixel = hitPixel / renderSize;
 		float currentZ = Linear01Depth(texture(depthBuffer, hitPixel).x) * -farZ;
 		intersect = zA >= currentZ - zThickness && zB <= currentZ;
@@ -300,10 +305,8 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 	{
 		pqk -= dPQK;
 		dPQK /= pixelStride;
-
 		float originalStride = pixelStride * 0.5;
-	    float stride = originalStride;
-	        		
+	    float stride = originalStride;	        		
 	    zA = pqk.z / pqk.w;
 	    zB = zA;	        		
 	    for(float j = 0; j < binarySearchIterations; j++)
@@ -313,16 +316,8 @@ bool FindSSRHit(vec3 csOrig, vec3 csDir, float jitter,
 				    	
 			zA = zB;
 			zB = (dPQK.z * 0.5 + pqk.z) / (dPQK.w * 0.5 + pqk.w);
-	    	/*if (zB > zA) 
-			{ 
-				float t = zA;
-				zA = zB;
-				zB = t;
-			}*/
 				    	
-			hitPixel = permute ? pqk.yx : pqk.xy;
-			//hitPixel.y = renderSize.y - hitPixel.y;
-				
+			hitPixel = permute ? pqk.yx : pqk.xy;				
 			hitPixel = hitPixel / renderSize;
 			float currentZ = Linear01Depth(texture(depthBuffer, hitPixel).x) * -farZ;
 			bool intersect2 = zA >= currentZ - zThickness && zB <= currentZ;   

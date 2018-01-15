@@ -20,7 +20,7 @@ private:
 	Transform scale = Identity();
 	Transform localTRS = Identity();
 	Transform objectToWorld = Identity();
-	TQuaternion<float, Vector> rotationQuat = TQuaternion<float, Vector>(0, 0, 0, 1);
+	TQuaternion<float, Vector> rotationQuat;
 
 	vector<Component*> components;
 	GameObject* parent = nullptr;
@@ -29,6 +29,11 @@ private:
 
 
 public:
+	GameObject()
+	{
+		rotationQuat = TQuaternion<float, Vector>(0, 0, 0, 1);
+	}
+
 	/*-------------Components-------------*/
 	/*!
 	*  \brief Ajout d'un composant au gameobject.
