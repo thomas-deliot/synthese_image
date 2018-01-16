@@ -11,7 +11,6 @@
 
 #include "GameObject.h"
 #include "MeshRenderer.h"
-#include "GameTerrain.h"
 #include "FlyCamera.h"
 #include "RotateObjectMouse.h"
 #include "Camera.h"
