@@ -2,10 +2,10 @@
 
 #undef main SDLmain
 
-int main(int argc, char **argv)
+/*int main(int argc, char **argv)
 {
 	Engine game;
 	game.run();
 
 	return 0;
-}
+}*/
