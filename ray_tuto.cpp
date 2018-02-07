@@ -275,33 +275,39 @@ bool intersect(const Ray& ray, Hit& hit, int bvhId)
 	float entryT, exitT;
 	BVHNode node = bvh[bvhId];
 
-	// Primitive
+	// Intersect leaf node
 	if (node.triangleId != -1)
 	{
 		float v;
 		int id = node.triangleId;
-		if (triangles[id].intersect(ray, 1.0, entryT, exitT, v))
+		if (triangles[id].intersect(ray, hit.t, entryT, exitT, v))
 		{
 			hit.t = entryT;
 			hit.u = exitT;
 			hit.v = v;
 
-			hit.p = ray(entryT);	// evalue la positon du point d'intersection sur le rayon
+			hit.p = ray(entryT);
 			hit.n = triangles[id].normal(exitT, v);
 
-			hit.object_id = id;	// permet de retrouver toutes les infos associees au triangle
+			hit.object_id = id;
 			return true;
 		}
 		else
 			return false;
 	}
 
-	// Explore
+	// Intersect intermediary node and recursively explore children
 	if (node.aabb.intersect(ray, hit.t, entryT, exitT) == true)
 	{
-		bool left = intersect(ray, hit, node.leftId);
-		bool right = intersect(ray, hit, node.rightId);
-		return right || left;
+		Hit left = hit, right = hit;
+		bool leftHit = intersect(ray, left, node.leftId);
+		bool rightHit = intersect(ray, right, node.rightId);
+
+		if (rightHit && leftHit)
+			hit = right.t < left.t ? right : left;
+		else
+			hit = leftHit ? left : right;
+ 		return (rightHit || leftHit);
 	}
 	return false;
 }
@@ -483,7 +489,7 @@ int main(int argc, char **argv)
 				float diffuseTerm = std::max(dot(-lightDir, hit.n), 0.0f);
 
 				// Compute ambient occlusion factor
-				float ambientTerm = 1;// GetAmbientOcclusionTerm(hit, 32);
+				float ambientTerm = GetAmbientOcclusionTerm(hit, 512);
 
 				// Render result
 				Color direct = hitColor(mesh, hit) * diffuseTerm * ambientTerm;
