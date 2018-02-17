@@ -432,6 +432,7 @@ unsigned int build_nodes(vector<BVHNode>& nodes,
 
 
 // MAIN
+const unsigned int N = 256;
 int main(int argc, char **argv)
 {
 	// init generateur aleatoire
@@ -456,8 +457,9 @@ int main(int argc, char **argv)
 
 	// placer une source de lumiere
 	Point light = camera.position();
-	//Point light = Point(0.0f, 5.0f, 0.0f);
-	float lightRadius = 6.0f;
+	//Point light = Point(0.0f, 1.7f, 0.0f);
+	float lightRadius = 20.0f;
+	float lightIntensity = 2.0f;
 	float fieldOfView = 60.0f;
 
 	// creer l'image pour stocker le resultat
@@ -469,15 +471,10 @@ int main(int argc, char **argv)
 	{
 		for (int x = 0; x < image.width(); x++)
 		{
-			if (x == image.width() / 2 - 150 && y == image.height() / 2)
-			{
-				int x = 0;
-			}
-
 			Point dO;
 			Vector dx, dy;
 			camera.frame(image.width(), image.height(), 1.0f, fieldOfView, dO, dx, dy);
-			Point o = light;
+			Point o = camera.position();
 			Point e = dO + x * dx + y * dy;
 			Ray ray(o, e);
 			Hit hit;
@@ -486,15 +483,17 @@ int main(int argc, char **argv)
 			{
 				// calculer l'eclairage direct pour chaque source
 				Vector lightDir = normalize(hit.p - light);
-				float diffuseTerm = std::max(dot(-lightDir, hit.n), 0.0f);
+				float diffuseTerm = std::max(dot(-lightDir, hit.n), 0.0f)
+					* (1.0f - (length(hit.p - light) / lightRadius))
+					* lightIntensity;
 
 				// Compute ambient occlusion factor
-				float ambientTerm = GetAmbientOcclusionTerm(hit, 512);
+				float ambientTerm = GetAmbientOcclusionTerm(hit, N);
 
 				// Render result
 				Color direct = hitColor(mesh, hit) * diffuseTerm * ambientTerm;
 				image(x, y) = Color(direct, 1);
-				//image(x, y) = Color(ambient, ambient, ambient, 1);
+				//image(x, y) = Color(ambientTerm, ambientTerm, ambientTerm, 1);
 			}
 		}
 	}
